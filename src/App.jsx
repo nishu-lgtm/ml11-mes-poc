@@ -1,778 +1,904 @@
 import { useState, useEffect } from "react";
 
-// ── Constants ──────────────────────────────────────────
-const O = "#EE711D", DK = "#1A1A2E", LB = "#FFF8F3";
-const G50 = "#F9FAFB", G100 = "#F3F4F6", G200 = "#E5E7EB", G300 = "#D1D5DB";
-const G400 = "#9CA3AF", G500 = "#6B7280", G600 = "#4B5563", G700 = "#374151", G800 = "#1F2937";
-const GR = "#059669", RD = "#DC2626", YL = "#D97706", BL = "#2563EB", PU = "#7C3AED";
+// ═══════════════════════════════════════════════════════════
+// MES POC v3 — Dexlansoprazole DR Capsules 60mg (DXLPR)
+// Synthetic demo data | 10-step batch execution | Mobile-first
+// ═══════════════════════════════════════════════════════════
 
-// ── Data ──────────────────────────────────────────────
-const EQUIP = [
-  { id: "PR571", name: "High Shear Granulator", make: "Glatt System", area: "Granulation", status: "Running", calibDue: "2025-03-15", clean: "Clean", cht: "4h", dht: "24h", ppmDue: "2025-04-01", qualStatus: "Qualified" },
-  { id: "PR572", name: "Fluid Bed Dryer", make: "Glatt System", area: "Drying", status: "Idle", calibDue: "2025-02-28", clean: "Clean", cht: "6h", dht: "48h", ppmDue: "2025-03-15", qualStatus: "Qualified" },
-  { id: "PR573", name: "High Shear Granulator", make: "Glatt System", area: "Granulation", status: "Maintenance", calibDue: "2025-04-10", clean: "Dirty", cht: "4h", dht: "24h", ppmDue: "2025-05-01", qualStatus: "Due" },
-  { id: "PR575", name: "Fluid Bed Dryer", make: "Glatt System", area: "Drying", status: "Running", calibDue: "2025-03-20", clean: "Clean", cht: "6h", dht: "48h", ppmDue: "2025-04-10", qualStatus: "Qualified" },
-  { id: "PR331", name: "Octagonal Blender", make: "Tapasya", area: "Blending", status: "Idle", calibDue: "2025-05-01", clean: "Clean", cht: "2h", dht: "12h", ppmDue: "2025-06-01", qualStatus: "Qualified" },
-  { id: "PR520", name: "Roll Compactor", make: "FITZPATRICK", area: "Compaction", status: "Running", calibDue: "2025-03-05", clean: "Clean", cht: "4h", dht: "24h", ppmDue: "2025-03-20", qualStatus: "Qualified" },
-  { id: "PR716", name: "HATA Compression Machine", make: "Parle Elizabeth", area: "Compression", status: "Running", calibDue: "2025-04-15", clean: "Clean", cht: "8h", dht: "72h", ppmDue: "2025-05-15", qualStatus: "Qualified" },
-  { id: "PR562", name: "Legacy 6100 Compression", make: "ACG-Pam", area: "Compression", status: "Idle", calibDue: "2025-03-25", clean: "Clean", cht: "8h", dht: "72h", ppmDue: "2025-04-20", qualStatus: "Qualified" },
-  { id: "PR176", name: "AF-150 Capsule Filling", make: "PAM", area: "Capsule Filling", status: "Running", calibDue: "2025-02-20", clean: "Clean", cht: "4h", dht: "24h", ppmDue: "2025-03-10", qualStatus: "Qualified" },
-  { id: "PR726", name: "Coating Machine", make: "Bectochem Loedige", area: "Coating", status: "Idle", calibDue: "2025-06-10", clean: "Dirty", cht: "12h", dht: "48h", ppmDue: "2025-07-01", qualStatus: "Qualified" },
-  { id: "PR460", name: "Blister Packing Machine", make: "ACG PAM PAC", area: "Packing", status: "Running", calibDue: "2025-04-01", clean: "Clean", cht: "4h", dht: "24h", ppmDue: "2025-05-01", qualStatus: "Qualified" },
-  { id: "PR636", name: "B Max Blister Pack", make: "ACG Pam Pharma", area: "Packing", status: "Idle", calibDue: "2025-05-20", clean: "Clean", cht: "4h", dht: "24h", ppmDue: "2025-06-15", qualStatus: "Qualified" },
-];
-
-const BALANCES = [
-  { id: "BAL-01", name: "Mettler Toledo XPR-205", location: "Dispensing Bay 1", capacity: "220g", lc: "0.01mg", status: "Connected", lastCalib: "2025-02-01", nextCalib: "2025-03-01", dailyCheck: "Pass", lastWeight: "125.340 g", checkTime: "07:15" },
-  { id: "BAL-02", name: "Mettler Toledo XS-6002S", location: "Dispensing Bay 2", capacity: "6.1kg", lc: "0.01g", status: "Connected", lastCalib: "2025-01-28", nextCalib: "2025-02-28", dailyCheck: "Pass", lastWeight: "4521.23 g", checkTime: "07:20" },
-  { id: "BAL-03", name: "Sartorius Cubis II", location: "Granulation Room", capacity: "12kg", lc: "0.1g", status: "Connected", lastCalib: "2025-02-05", nextCalib: "2025-03-05", dailyCheck: "Pass", lastWeight: "8750.5 g", checkTime: "07:10" },
-  { id: "BAL-04", name: "A&D GX-6100", location: "Compression Suite", capacity: "6.1kg", lc: "0.01g", status: "Connected", lastCalib: "2025-01-20", nextCalib: "2025-02-20", dailyCheck: "Fail", lastWeight: "-", checkTime: "07:25" },
-  { id: "BAL-05", name: "Mettler Toledo ICS-449", location: "Packing Area", capacity: "150kg", lc: "1g", status: "Disconnected", lastCalib: "2025-01-15", nextCalib: "2025-02-15", dailyCheck: "Pending", lastWeight: "-", checkTime: "-" },
-  { id: "BAL-06", name: "Sartorius Practum 5101", location: "QC Lab", capacity: "5.1kg", lc: "0.1g", status: "Connected", lastCalib: "2025-02-03", nextCalib: "2025-03-03", dailyCheck: "Pass", lastWeight: "342.1 g", checkTime: "07:05" },
-];
-
-const BATCHES = [
-  { id: "BN-2025-001", product: "Metformin HCl 500mg", stage: "Compression", progress: 65, status: "In Progress", start: "2025-02-01", size: "500 kg", yield: "98.2%", devs: 0, mfr: "MFR-MET-003", template: "TPL-MET-v3.2" },
-  { id: "BN-2025-002", product: "Atorvastatin 10mg", stage: "Coating", progress: 80, status: "In Progress", start: "2025-01-28", size: "300 kg", yield: "97.8%", devs: 1, mfr: "MFR-ATV-002", template: "TPL-ATV-v2.1" },
-  { id: "BN-2025-003", product: "Amoxicillin 250mg Caps", stage: "Capsule Filling", progress: 45, status: "In Progress", start: "2025-02-03", size: "200 kg", yield: "99.1%", devs: 0, mfr: "MFR-AMX-001", template: "TPL-AMX-v1.3" },
-  { id: "BN-2025-004", product: "Losartan 50mg", stage: "Blending", progress: 25, status: "In Progress", start: "2025-02-05", size: "400 kg", yield: "-", devs: 0, mfr: "MFR-LOS-001", template: "TPL-LOS-v1.1" },
-  { id: "BN-2025-005", product: "Ciprofloxacin 500mg", stage: "Packing", progress: 95, status: "In Progress", start: "2025-01-20", size: "600 kg", yield: "98.5%", devs: 0, mfr: "MFR-CIP-004", template: "TPL-CIP-v4.0" },
-  { id: "BN-2024-198", product: "Omeprazole 20mg", stage: "Complete", progress: 100, status: "Released", start: "2025-01-10", size: "350 kg", yield: "99.0%", devs: 0, mfr: "MFR-OMP-002", template: "TPL-OMP-v2.0" },
-  { id: "BN-2024-199", product: "Azithromycin 500mg", stage: "Complete", progress: 100, status: "Under Review", start: "2025-01-15", size: "250 kg", yield: "97.5%", devs: 2, mfr: "MFR-AZM-001", template: "TPL-AZM-v1.2" },
-];
-
-const TEMPLATES = [
-  { id: "TPL-MET-v3.2", product: "Metformin HCl 500mg", type: "BMR", version: "3.2", status: "Approved", effectiveDate: "2025-01-15", approvedBy: "QA Head", stages: 9, changeCtrl: "CC-2025-003", prevVersion: "v3.1", revisionReason: "Updated compression parameters per CPV data" },
-  { id: "TPL-ATV-v2.1", product: "Atorvastatin 10mg", type: "BMR", version: "2.1", status: "Approved", effectiveDate: "2025-01-01", approvedBy: "QA Head", stages: 10, changeCtrl: "CC-2024-045", prevVersion: "v2.0", revisionReason: "Coating process optimization" },
-  { id: "TPL-AMX-v1.3", product: "Amoxicillin 250mg Caps", type: "BMR", version: "1.3", status: "Approved", effectiveDate: "2024-11-20", approvedBy: "QA Head", stages: 8, changeCtrl: "CC-2024-038", prevVersion: "v1.2", revisionReason: "Capsule fill weight range update" },
-  { id: "TPL-LOS-v1.1", product: "Losartan 50mg", type: "BMR", version: "1.1", status: "Approved", effectiveDate: "2025-02-01", approvedBy: "QA Head", stages: 9, changeCtrl: "CC-2025-001", prevVersion: "v1.0", revisionReason: "Initial template revision post validation" },
-  { id: "TPL-CIP-v4.0", product: "Ciprofloxacin 500mg", type: "BPR", version: "4.0", status: "Approved", effectiveDate: "2024-12-10", approvedBy: "QA Head", stages: 7, changeCtrl: "CC-2024-042", prevVersion: "v3.2", revisionReason: "Packing line changeover update" },
-  { id: "TPL-OMP-v2.0", product: "Omeprazole 20mg", type: "BMR", version: "2.0", status: "Approved", effectiveDate: "2024-10-01", approvedBy: "QA Head", stages: 10, changeCtrl: "CC-2024-030", prevVersion: "v1.5", revisionReason: "Enteric coating spec revision" },
-  { id: "TPL-AZM-v1.2", product: "Azithromycin 500mg", type: "BMR", version: "1.2", status: "Approved", effectiveDate: "2024-09-15", approvedBy: "QA Head", stages: 9, changeCtrl: "CC-2024-025", prevVersion: "v1.1", revisionReason: "Granulation endpoint update" },
-  { id: "TPL-MET-v3.3", product: "Metformin HCl 500mg", type: "BMR", version: "3.3", status: "Under Review", effectiveDate: "-", approvedBy: "-", stages: 9, changeCtrl: "CC-2025-008", prevVersion: "v3.2", revisionReason: "Blending time optimization per scale-up study" },
-  { id: "TPL-CLEAN-001", product: "General", type: "Cleaning Checklist", version: "1.0", status: "Approved", effectiveDate: "2024-06-01", approvedBy: "QA Head", stages: 5, changeCtrl: "CC-2024-015", prevVersion: "-", revisionReason: "Initial release" },
-];
-
-const BOM_DATA = [
-  { batch: "BN-2025-001", material: "Metformin HCl API", code: "RM-001-A", sapCode: "100045", required: "250.00 kg", dispensed: "250.12 kg", arNo: "AR-2025-0456", lot: "LOT-MET-2025-01", container: "CTN-001", status: "Verified", holdTime: "72h", holdExpiry: "2025-02-08 14:00", dispensedBy: "Operator_A", dispensedAt: "2025-02-01 08:30" },
-  { batch: "BN-2025-001", material: "Povidone K30", code: "RM-002-B", sapCode: "100089", required: "25.00 kg", dispensed: "25.05 kg", arNo: "AR-2025-0461", lot: "LOT-PVP-2024-12", container: "CTN-002", status: "Verified", holdTime: "48h", holdExpiry: "2025-02-06 10:00", dispensedBy: "Operator_A", dispensedAt: "2025-02-01 09:15" },
-  { batch: "BN-2025-001", material: "Microcrystalline Cellulose", code: "RM-003-C", sapCode: "100092", required: "150.00 kg", dispensed: "150.08 kg", arNo: "AR-2025-0458", lot: "LOT-MCC-2024-11", container: "CTN-003", status: "Verified", holdTime: "96h", holdExpiry: "2025-02-09 08:00", dispensedBy: "Operator_B", dispensedAt: "2025-02-01 10:00" },
-  { batch: "BN-2025-001", material: "Magnesium Stearate", code: "RM-004-D", sapCode: "100101", required: "5.00 kg", dispensed: "5.02 kg", arNo: "AR-2025-0462", lot: "LOT-MGS-2025-01", container: "CTN-004", status: "Verified", holdTime: "24h", holdExpiry: "2025-02-05 12:00", dispensedBy: "Operator_A", dispensedAt: "2025-02-01 10:30" },
-  { batch: "BN-2025-001", material: "Purified Water", code: "RM-005-W", sapCode: "100200", required: "70.00 L", dispensed: "70.00 L", arNo: "AR-2025-0460", lot: "INLINE", container: "PW-SYS", status: "Auto-captured", holdTime: "24h", holdExpiry: "2025-02-02 08:30", dispensedBy: "System", dispensedAt: "2025-02-01 08:30" },
-  { batch: "BN-2025-001", material: "HPMC E5 (Coating)", code: "PM-001-H", sapCode: "200015", required: "12.50 kg", dispensed: "-", arNo: "-", lot: "-", container: "-", status: "Pending", holdTime: "-", holdExpiry: "-", dispensedBy: "-", dispensedAt: "-" },
-];
-
-const SAMPLING_DATA = [
-  { id: "SMP-2025-001", batch: "BN-2025-001", stage: "Blending", type: "Blend Uniformity", qty: "10 x 5g", samplePoints: "Top/Middle/Bottom", sampledBy: "QC Officer", sampledAt: "2025-02-03 14:30", status: "Collected", trf: "TRF-2025-0234", limsRef: "LIMS-BU-2025-001" },
-  { id: "SMP-2025-002", batch: "BN-2025-001", stage: "Compression", type: "Hardness/Friability/DT", qty: "20 tablets", samplePoints: "Start/Middle/End", sampledBy: "QC Officer", sampledAt: "2025-02-05 10:15", status: "Under Testing", trf: "TRF-2025-0238", limsRef: "LIMS-CT-2025-003" },
-  { id: "SMP-2025-003", batch: "BN-2025-001", stage: "Compression", type: "Weight Variation", qty: "20 tablets", samplePoints: "Every 30 min", sampledBy: "IPC Inspector", sampledAt: "2025-02-05 11:00", status: "Passed", trf: "TRF-2025-0239", limsRef: "LIMS-WV-2025-002" },
-  { id: "SMP-2025-004", batch: "BN-2025-002", stage: "Coating", type: "Appearance / Weight Gain", qty: "10 tablets", samplePoints: "Post-coating", sampledBy: "QC Officer", sampledAt: "2025-02-06 09:00", status: "Collected", trf: "TRF-2025-0241", limsRef: "LIMS-CT-2025-005" },
-  { id: "SMP-2025-005", batch: "BN-2025-002", stage: "Packing", type: "AQL Inspection", qty: "125 units", samplePoints: "Per AQL Table", sampledBy: "QC Inspector", sampledAt: "-", status: "Pending", trf: "-", limsRef: "-" },
-];
-
-const IPC_DATA = [
-  { id: "IPC-001", batch: "BN-2025-001", stage: "Granulation", check: "LOD (Loss on Drying)", limit: "1.5% - 2.5%", result: "1.8%", status: "Pass", equipment: "PR571", operator: "Operator_A", time: "2025-02-02 14:30", frequency: "End of drying" },
-  { id: "IPC-002", batch: "BN-2025-001", stage: "Blending", check: "Blend Time", limit: "15 ± 2 min", result: "16 min", status: "Pass", equipment: "PR331", operator: "Operator_A", time: "2025-02-03 10:00", frequency: "Per batch" },
-  { id: "IPC-003", batch: "BN-2025-001", stage: "Compression", check: "Individual Weight", limit: "500 ± 25 mg", result: "498 mg", status: "Pass", equipment: "PR716", operator: "Operator_B", time: "2025-02-05 09:00", frequency: "Every 30 min" },
-  { id: "IPC-004", batch: "BN-2025-001", stage: "Compression", check: "Hardness", limit: "8 - 12 kP", result: "10.5 kP", status: "Pass", equipment: "PR716", operator: "Operator_B", time: "2025-02-05 09:30", frequency: "Every 30 min" },
-  { id: "IPC-005", batch: "BN-2025-001", stage: "Compression", check: "Disintegration Time", limit: "NMT 15 min", result: "8 min", status: "Pass", equipment: "DT-001", operator: "QC Officer", time: "2025-02-05 10:00", frequency: "Every 2 hours" },
-  { id: "IPC-006", batch: "BN-2025-001", stage: "Compression", check: "Friability", limit: "NMT 1.0%", result: "0.45%", status: "Pass", equipment: "FRB-001", operator: "QC Officer", time: "2025-02-05 10:15", frequency: "Every 2 hours" },
-  { id: "IPC-007", batch: "BN-2025-002", stage: "Coating", check: "Weight Gain %", limit: "3.0% ± 0.5%", result: "3.6%", status: "Alert", equipment: "PR726", operator: "Operator_C", time: "2025-02-06 16:00", frequency: "End of coating" },
-  { id: "IPC-008", batch: "BN-2025-002", stage: "Coating", check: "Pan Speed", limit: "6 ± 1 RPM", result: "6.5 RPM", status: "Pass", equipment: "PR726", operator: "System", time: "2025-02-06 14:00", frequency: "Continuous" },
-];
-
-const EXEC_STEPS = [
-  { step: 1, name: "Line Clearance", sop: "SOP-MFG-001 v4.0", status: "Completed", signedBy: "Operator_A", verifiedBy: "Supervisor_B", time: "08:00", notes: "Area clear, previous product residue absent" },
-  { step: 2, name: "Material Verification", sop: "SOP-MFG-002 v3.1", status: "Completed", signedBy: "Operator_A", verifiedBy: "QA_Reviewer", time: "08:30", notes: "All 5 materials verified against BOM" },
-  { step: 3, name: "Sifting of API & Excipients", sop: "SOP-MFG-003 v2.0", status: "Completed", signedBy: "Operator_A", verifiedBy: "Supervisor_B", time: "09:15", notes: "Sieve #40 mesh, integrity check passed" },
-  { step: 4, name: "Dry Mixing", sop: "SOP-MFG-004 v2.0", status: "Completed", signedBy: "Operator_A", verifiedBy: "Supervisor_B", time: "09:45", notes: "10 min @ 80 RPM in PR571" },
-  { step: 5, name: "Granulation (Binder Addition)", sop: "SOP-MFG-005 v3.0", status: "Completed", signedBy: "Operator_A", verifiedBy: "Supervisor_B", time: "10:30", notes: "PVP solution added over 5 min, wet massing 3 min" },
-  { step: 6, name: "Drying (FBD)", sop: "SOP-MFG-006 v2.1", status: "Completed", signedBy: "Operator_A", verifiedBy: "QA_Reviewer", time: "12:00", notes: "Inlet temp 60°C, LOD achieved: 1.8%" },
-  { step: 7, name: "Sizing / Milling", sop: "SOP-MFG-007 v1.5", status: "Completed", signedBy: "Operator_A", verifiedBy: "Supervisor_B", time: "13:00", notes: "Screen size 1.0mm, speed 1500 RPM" },
-  { step: 8, name: "Lubrication / Final Blending", sop: "SOP-MFG-008 v2.0", status: "Completed", signedBy: "Operator_A", verifiedBy: "Supervisor_B", time: "13:45", notes: "MgSt added, blended 5 min @ 12 RPM" },
-  { step: 9, name: "Compression", sop: "SOP-MFG-009 v3.2", status: "In Progress", signedBy: "Operator_B", verifiedBy: "-", time: "14:00", notes: "Machine: PR716, Target: 500mg ± 5%, Speed: 45 RPM" },
-  { step: 10, name: "IPC - Compression", sop: "SOP-QC-015 v2.0", status: "Pending", signedBy: "-", verifiedBy: "-", time: "-", notes: "Wt variation, hardness, friability, DT per schedule" },
-  { step: 11, name: "Coating", sop: "SOP-MFG-010 v2.5", status: "Pending", signedBy: "-", verifiedBy: "-", time: "-", notes: "HPMC coating, 3% wt gain target" },
-  { step: 12, name: "Final Inspection & Yield", sop: "SOP-MFG-012 v1.0", status: "Pending", signedBy: "-", verifiedBy: "-", time: "-", notes: "Final yield calculation and reconciliation" },
-];
-
-const STAGES = ["Dispensing","Granulation","Drying","Blending","Compression","Coating","Capsule Filling","Inspection","Packing","Complete"];
-
-const DEVIATIONS = [
-  { id: "DEV-2025-001", batch: "BN-2025-002", type: "Process", cat: "Minor", desc: "Compression force exceeded upper limit by 0.5 kN", status: "Open", by: "Operator A", date: "2025-02-04", stage: "Compression" },
-  { id: "DEV-2025-002", batch: "BN-2024-199", type: "Equipment", cat: "Major", desc: "Coating pan temperature deviation +3°C from setpoint", status: "Under Investigation", by: "Supervisor B", date: "2025-01-18", stage: "Coating" },
-  { id: "DEV-2025-003", batch: "BN-2024-199", type: "Material", cat: "Info", desc: "Raw material lot change during dispensing", status: "Closed", by: "QA Officer", date: "2025-01-16", stage: "Dispensing" },
-  { id: "DEV-2024-045", batch: "BN-2024-185", type: "Process", cat: "Critical", desc: "Hold time exceeded for granulation intermediate", status: "Closed - CAPA", by: "Prod Head", date: "2024-12-10", stage: "Granulation" },
-];
-
-const AUDIT = [
-  { id: "AUD-10245", ts: "2025-02-08 09:15:23", user: "Operator_A", action: "Batch Step Execution", detail: "Completed Step 8: Lubrication for BN-2025-001 [Old: In Progress → New: Completed]", module: "Batch", ip: "192.168.1.45" },
-  { id: "AUD-10244", ts: "2025-02-08 09:10:05", user: "QA_Reviewer", action: "E-Signature (Approve)", detail: "Approved stage: Blending for BN-2025-004 | Reason: Stage review complete", module: "Signature", ip: "192.168.1.22" },
-  { id: "AUD-10243", ts: "2025-02-08 08:55:12", user: "Admin_01", action: "User Create", detail: "Created user: New_Operator_C [Role: Operator, Dept: Production]", module: "Security", ip: "192.168.1.10" },
-  { id: "AUD-10242", ts: "2025-02-08 08:30:00", user: "System", action: "Auto Data Capture", detail: "Balance BAL-03: Gross=8750.5g, Tare=0.0g, Net=8750.5g for BN-2025-001 Step 4", module: "Equipment", ip: "System" },
-  { id: "AUD-10241", ts: "2025-02-08 08:15:33", user: "Supervisor_B", action: "Deviation Initiate", detail: "DEV-2025-001 for BN-2025-002 [Cat: Minor, Type: Process]", module: "Quality", ip: "192.168.1.33" },
-  { id: "AUD-10240", ts: "2025-02-08 07:45:10", user: "Operator_A", action: "Login", detail: "Successful login via User ID + Password + Biometric", module: "Security", ip: "192.168.1.45" },
-  { id: "AUD-10239", ts: "2025-02-07 22:30:00", user: "System", action: "Hold Time Alert", detail: "CHT approaching limit (3h 45m / 4h) for PR726 Coating Machine", module: "Equipment", ip: "System" },
-  { id: "AUD-10238", ts: "2025-02-07 18:00:15", user: "QA_Head", action: "Template Approve", detail: "Approved TPL-MET-v3.2 [Old: Under Review → New: Approved] | CC: CC-2025-003", module: "Document", ip: "192.168.1.15" },
-];
-
-const INTEGRATIONS = [
-  { name: "SAP ERP", ver: "ECC 6.0 EHP 7", supplier: "SAP", status: "Connected", sync: "2025-02-08 09:14:00", type: "Bi-directional", details: "BOM, Production Orders, Material Master, Batch Release" },
-  { name: "Caliber LIMS", ver: "3.2.1 (E)", supplier: "Caliber", status: "Connected", sync: "2025-02-08 09:12:30", type: "Bi-directional", details: "COA, Stability, RM/Excipient/PM, TRF/Results" },
-  { name: "Caliber DMS", ver: "2.2.0", supplier: "Caliber", status: "Connected", sync: "2025-02-08 09:10:00", type: "Read (Version-controlled)", details: "SOPs (current approved only), Master Templates, Formats" },
-  { name: "Material Tracking (MTS)", ver: "2.0", supplier: "Micro Labs", status: "Connected", sync: "2025-02-08 09:05:15", type: "Bi-directional", details: "Dispensed materials, labels, returns, reconciliation" },
-  { name: "Maestrotek IPQC", ver: "NA", supplier: "Maestrotek", status: "Degraded", sync: "2025-02-08 08:45:00", type: "Read", details: "In-process check data, IPC parameters" },
-  { name: "Weighing Balances", ver: "-", supplier: "Multiple", status: "Connected", sync: "2025-02-08 09:14:55", type: "Data Capture", details: `${BALANCES.filter(b=>b.status==="Connected").length}/${BALANCES.length} connected, real-time tare/net/gross` },
-  { name: "LDAP / AD", ver: "-", supplier: "Microsoft", status: "Connected", sync: "2025-02-08 09:00:00", type: "Authentication", details: "SSO, user provisioning, group sync" },
-  { name: "Track & Trace", ver: "-", supplier: "External", status: "Not Configured", sync: "-", type: "Outbound", details: "Batch serialization reports (Phase 2)" },
-];
-
-const USERS = [
-  { id: "USR-001", name: "A.V. Seuban Reddy", role: "QA Manager", dept: "QA", status: "Active", login: "2025-02-08 09:00" },
-  { id: "USR-002", name: "Munusegan M.", role: "QA Reviewer", dept: "QA", status: "Active", login: "2025-02-08 08:30" },
-  { id: "USR-003", name: "Rajeshwani K.", role: "Stores Head", dept: "Stores", status: "Active", login: "2025-02-07 17:00" },
-  { id: "USR-004", name: "Operator A", role: "Production Operator", dept: "Production", status: "Active", login: "2025-02-08 07:45" },
-  { id: "USR-005", name: "Supervisor B", role: "Production Supervisor", dept: "Production", status: "Active", login: "2025-02-08 08:00" },
-  { id: "USR-006", name: "IT Admin", role: "System Administrator", dept: "IT", status: "Active", login: "2025-02-08 06:00" },
-  { id: "USR-007", name: "Vinod V.K.", role: "QC Head", dept: "QC", status: "Active", login: "2025-02-07 16:30" },
-  { id: "USR-008", name: "Former Employee", role: "Operator", dept: "Production", status: "Deactivated", login: "2024-11-15 09:00" },
-];
-
-const LOGBOOKS = [
-  { id: "LOG-001", type: "Equipment Usage", equip: "PR571 - HSG", area: "Granulation Room A", entries: 145, last: "2025-02-08 09:10", status: "Active" },
-  { id: "LOG-002", type: "Cleaning Log", equip: "PR726 - Coating", area: "Coating Room B", entries: 89, last: "2025-02-07 22:00", status: "Active" },
-  { id: "LOG-003", type: "Area Logbook", equip: "-", area: "Compression Suite 1", entries: 312, last: "2025-02-08 08:45", status: "Active" },
-  { id: "LOG-004", type: "Calibration Log", equip: "BAL-05", area: "Dispensing", entries: 56, last: "2025-02-08 07:00", status: "Active" },
-  { id: "LOG-005", type: "Cleaning Checklist", equip: "PR331 - Blender", area: "Blending Room", entries: 78, last: "2025-02-07 18:30", status: "Completed" },
-];
-
-// ── Utility Components ──────────────────────────────────────
-const Badge = ({ s, sz = "sm" }) => {
-  const m = { Running: GR, Connected: GR, Active: GR, Released: GR, Closed: GR, Clean: GR, Completed: GR, Pass: GR, "Closed - CAPA": GR, Approved: GR, Collected: GR, Passed: GR, Qualified: GR, Idle: YL, "In Progress": BL, "Under Review": YL, "Under Testing": YL, "Under Investigation": YL, Partial: YL, Pending: YL, Due: YL, Open: RD, Degraded: RD, Maintenance: RD, Dirty: RD, Fail: RD, Alert: O, Deactivated: G400, "Not Configured": G400, Disconnected: RD, "Auto-captured": PU, Verified: GR };
-  const c = m[s] || G400;
-  return <span style={{ background: `${c}18`, color: c, padding: sz === "sm" ? "2px 10px" : "4px 14px", borderRadius: 20, fontSize: sz === "sm" ? 11 : 13, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: c }} />{s}</span>;
+// ── Theme ──────────────────────────────────────────
+const C = {
+  pri: "#0D6E6E", pri2: "#0A5858", priL: "#E8F6F6", priG: "linear-gradient(135deg, #0D6E6E 0%, #14919B 100%)",
+  bg: "#F6F8FA", card: "#FFFFFF", bor: "#E2E8F0", borL: "#F0F4F8",
+  t1: "#0F172A", t2: "#334155", t3: "#64748B", t4: "#94A3B8",
+  gr: "#059669", grL: "#ECFDF5", rd: "#DC2626", rdL: "#FEF2F2",
+  yl: "#D97706", ylL: "#FFFBEB", bl: "#2563EB", blL: "#EFF6FF",
+  pu: "#7C3AED", puL: "#F5F3FF", or: "#EA580C",
 };
 
-const Cd = ({ children, style = {}, onClick }) => <div onClick={onClick} style={{ background: "#fff", borderRadius: 12, border: `1px solid ${G200}`, padding: 20, cursor: onClick ? "pointer" : "default", ...style }}>{children}</div>;
+// ── 10 Batch Execution Stages ──────────────────────
+const STAGES_10 = [
+  { id: 1, name: "Sifting", short: "SFT", icon: "🔍", area: "R20", equip: ["EQ-401","EQ-402","EQ-403"], sop: "SOP-MFG-001 v2.0", desc: "Sifting of API & excipients through vibratory sifter" },
+  { id: 2, name: "Binder Prep", short: "BND", icon: "🧪", area: "R25", equip: ["EQ-160","EQ-161"], sop: "SOP-MFG-002 v3.1", desc: "Binder solution preparation using planetary mixer" },
+  { id: 3, name: "Granulation", short: "GRN", icon: "⚙️", area: "R20", equip: ["EQ-110","EQ-111"], sop: "SOP-MFG-003 v2.0", desc: "Wet granulation in RMG with 3 sub-lots" },
+  { id: 4, name: "Drying", short: "DRY", icon: "🌡️", area: "R20", equip: ["EQ-220","EQ-221"], sop: "SOP-MFG-004 v2.1", desc: "Fluid bed drying per sub-lot with LOD monitoring" },
+  { id: 5, name: "Milling", short: "MIL", icon: "🔩", area: "R20", equip: ["EQ-305","EQ-306","EQ-307"], sop: "SOP-MFG-005 v1.5", desc: "Sizing through multimill for uniform granule size" },
+  { id: 6, name: "Blending", short: "BLN", icon: "🔄", area: "R22", equip: ["EQ-150","EQ-151"], sop: "SOP-MFG-006 v2.0", desc: "Dry mixing & lubrication in octagonal blender" },
+  { id: 7, name: "Compression", short: "CMP", icon: "💊", area: "R30", equip: ["EQ-510","EQ-511","EQ-512"], sop: "SOP-MFG-007 v3.2", desc: "Tablet compression with IPC monitoring" },
+  { id: 8, name: "Coating", short: "COT", icon: "🎨", area: "R40", equip: ["EQ-710","EQ-711"], sop: "SOP-MFG-008 v2.5", desc: "Film coating with Opadry dispersion" },
+  { id: 9, name: "Inspection", short: "INS", icon: "✅", area: "P10", equip: ["EQ-801","EQ-802"], sop: "SOP-QC-010 v2.0", desc: "Visual inspection and yield reconciliation" },
+  { id: 10, name: "Packing", short: "PKG", icon: "📦", area: "P15", equip: ["EP-401","EP-402","EP-403"], sop: "SOP-PKG-001 v4.0", desc: "Primary/secondary packing with serialization" },
+];
 
-const KPI = ({ label, value, sub, color = O, icon }) => <Cd style={{ display: "flex", alignItems: "center", gap: 16 }}><div style={{ width: 48, height: 48, borderRadius: 12, background: `${color}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{icon}</div><div><div style={{ fontSize: 24, fontWeight: 700, color: DK, lineHeight: 1.1 }}>{value}</div><div style={{ fontSize: 12, color: G500, marginTop: 2 }}>{label}</div>{sub && <div style={{ fontSize: 11, color, marginTop: 2, fontWeight: 500 }}>{sub}</div>}</div></Cd>;
+// ── Equipment (Synthetic) ──────────────────────
+const EQUIP = [
+  { id: "EQ-401", name: "Vibratory Sifter VS-40", area: "Sifting (R20)", status: "Running", calibDue: "2025-04-15", clean: "Clean", qualStatus: "Qualified" },
+  { id: "EQ-402", name: "Vibratory Sifter VS-40B", area: "Sifting (R20)", status: "Idle", calibDue: "2025-03-28", clean: "Clean", qualStatus: "Qualified" },
+  { id: "EQ-110", name: "Rapid Mixer Granulator RMG-150", area: "Granulation (R20)", status: "Running", calibDue: "2025-03-15", clean: "Clean", qualStatus: "Qualified" },
+  { id: "EQ-111", name: "Rapid Mixer Granulator RMG-150B", area: "Granulation (R20)", status: "Idle", calibDue: "2025-05-01", clean: "Dirty", qualStatus: "Due" },
+  { id: "EQ-220", name: "Fluid Bed Dryer FBD-60", area: "Drying (R20)", status: "Running", calibDue: "2025-03-20", clean: "Clean", qualStatus: "Qualified" },
+  { id: "EQ-305", name: "Multimill MM-30", area: "Milling (R20)", status: "Idle", calibDue: "2025-04-10", clean: "Clean", qualStatus: "Qualified" },
+  { id: "EQ-150", name: "Octagonal Blender OB-200", area: "Blending (R22)", status: "Running", calibDue: "2025-05-01", clean: "Clean", qualStatus: "Qualified" },
+  { id: "EQ-160", name: "Planetary Mixer PM-50", area: "Binder Prep (R25)", status: "Idle", calibDue: "2025-03-05", clean: "Clean", qualStatus: "Qualified" },
+  { id: "EQ-510", name: "Rotary Tablet Press RTP-45", area: "Compression (R30)", status: "Running", calibDue: "2025-04-15", clean: "Clean", qualStatus: "Qualified" },
+  { id: "EQ-601", name: "Metal Detector MD-200", area: "Compression (R30)", status: "Running", calibDue: "2025-02-28", clean: "Clean", qualStatus: "Qualified" },
+  { id: "EQ-610", name: "Tablet Deduster TD-100", area: "Compression (R30)", status: "Running", calibDue: "2025-04-20", clean: "Clean", qualStatus: "Qualified" },
+  { id: "EQ-710", name: "Auto Coater AC-48", area: "Coating (R40)", status: "Idle", calibDue: "2025-06-10", clean: "Dirty", qualStatus: "Qualified" },
+  { id: "EQ-801", name: "Inspection Table IT-01", area: "Inspection (P10)", status: "Running", calibDue: "2025-05-15", clean: "Clean", qualStatus: "Qualified" },
+  { id: "EP-401", name: "Blister Packing Machine BP-300", area: "Packing (P15)", status: "Running", calibDue: "2025-04-01", clean: "Clean", qualStatus: "Qualified" },
+  { id: "EP-501", name: "Auto Cartonator AC-200", area: "Secondary Packing (P20)", status: "Idle", calibDue: "2025-05-20", clean: "Clean", qualStatus: "Qualified" },
+];
 
-const Bar = ({ v, h = 6, c = O }) => <div style={{ width: "100%", height: h, background: G200, borderRadius: h, overflow: "hidden" }}><div style={{ width: `${v}%`, height: "100%", background: c, borderRadius: h, transition: "width 0.6s" }} /></div>;
+// ── Batches (Synthetic DXLPR) ──────────────────────
+const BATCHES = [
+  { id: "DXLPR0185", product: "Dexlansoprazole DR 60mg", mfr: "MFR1:DXLPR:FR03/R1", bmr: "BMR1:DXLPR:FR03/R1", mpr: "MPR:DXLPR:C:FR03", bpr: "BPR:DXLPR:C:FR03", batchSize: "45.0L", packSize: "2X15", mfgDate: "JAN.2025", expDate: "JAN.2028", stage: "Compression", stageIdx: 7, progress: 65, status: "In Progress", yield: "98.2%", devs: 0 },
+  { id: "DXLPR0186", product: "Dexlansoprazole DR 60mg", mfr: "MFR1:DXLPR:FR03/R1", bmr: "BMR1:DXLPR:FR03/R1", mpr: "MPR:DXLPR:C:FR03", bpr: "BPR:DXLPR:C:FR03", batchSize: "45.0L", packSize: "10X10", mfgDate: "JAN.2025", expDate: "JAN.2028", stage: "Coating", stageIdx: 8, progress: 80, status: "In Progress", yield: "97.8%", devs: 1 },
+  { id: "DXLPR0187", product: "Dexlansoprazole DR 60mg", mfr: "MFR1:DXLPR:FR03/R1", bmr: "BMR1:DXLPR:FR03/R1", mpr: "MPR:DXLPR:C:FR03/R1", bpr: "BPR:DXLPR:C:FR03/R1", batchSize: "15.0L", packSize: "2X15", mfgDate: "FEB.2025", expDate: "FEB.2028", stage: "Blending", stageIdx: 6, progress: 55, status: "In Progress", yield: "-", devs: 0 },
+  { id: "DXLPR0188", product: "Dexlansoprazole DR 60mg", mfr: "MFR1:DXLPR:FR03/R2", bmr: "BMR1:DXLPR:FR03/R2", mpr: "MPR:DXLPR:C:FR03/R1", bpr: "BPR:DXLPR:C:FR03/R1", batchSize: "45.0L", packSize: "2X15", mfgDate: "FEB.2025", expDate: "FEB.2028", stage: "Drying", stageIdx: 4, progress: 30, status: "In Progress", yield: "-", devs: 0 },
+  { id: "DXLPR0189", product: "Dexlansoprazole DR 60mg", mfr: "MFR1:DXLPR:FR03/R2", bmr: "BMR1:DXLPR:FR03/R2", mpr: "MPR:DXLPR:C:FR03/R1", bpr: "BPR:DXLPR:C:FR03/R1", batchSize: "45.0L", packSize: "1X100", mfgDate: "FEB.2025", expDate: "FEB.2028", stage: "Packing", stageIdx: 10, progress: 92, status: "In Progress", yield: "98.5%", devs: 0 },
+  { id: "DXLPR0183", product: "Dexlansoprazole DR 60mg", mfr: "MFR1:DXLPR:FR03/R1", bmr: "BMR1:DXLPR:FR03/R1", mpr: "MPR:DXLPR:C:FR03", bpr: "BPR:DXLPR:C:FR03", batchSize: "45.0L", packSize: "2X15", mfgDate: "DEC.2024", expDate: "DEC.2027", stage: "Complete", stageIdx: 10, progress: 100, status: "Released", yield: "99.0%", devs: 0 },
+  { id: "DXLPR0184", product: "Dexlansoprazole DR 60mg", mfr: "MFR1:DXLPR:FR03/R1", bmr: "BMR1:DXLPR:FR03/R1", mpr: "MPR:DXLPR:C:FR03", bpr: "BPR:DXLPR:C:FR03", batchSize: "15.0L", packSize: "10X10", mfgDate: "JAN.2025", expDate: "JAN.2028", stage: "Complete", stageIdx: 10, progress: 100, status: "Under Review", yield: "97.5%", devs: 2 },
+];
 
-const Sec = ({ children, sub }) => <div style={{ marginBottom: 16 }}><h2 style={{ fontSize: 18, fontWeight: 700, color: DK, margin: 0 }}>{children}</h2>{sub && <p style={{ fontSize: 13, color: G500, margin: "4px 0 0" }}>{sub}</p>}</div>;
+// ── 10-Step Execution for DXLPR0185 (Current batch in Compression) ──
+const EXEC_STEPS_10 = [
+  { step: 1, name: "Sifting", sop: "SOP-MFG-001 v2.0", status: "Completed", signedBy: "Op_Ravi_K", verifiedBy: "Sup_Meena_S", time: "08:15",
+    params: [{ p: "Sieve #40 mesh", v: "Integrity PASS", s: "Pass" }, { p: "Sifted Granules Yield", v: "98.04%", s: "Pass" }],
+    equip: "EQ-401 (Vibratory Sifter)", area: "R20", notes: "API + all excipients sifted through #40 mesh" },
+  { step: 2, name: "Binder Preparation", sop: "SOP-MFG-002 v3.1", status: "Completed", signedBy: "Op_Ravi_K", verifiedBy: "Sup_Meena_S", time: "08:50",
+    params: [{ p: "Viscosity of Coating Soln", v: "46.3 cps", s: "Pass" }],
+    equip: "EQ-160 (Planetary Mixer)", area: "R25", notes: "PVP binder solution prepared and viscosity verified" },
+  { step: 3, name: "Granulation (Wet)", sop: "SOP-MFG-003 v2.0", status: "Completed", signedBy: "Op_Ravi_K", verifiedBy: "Sup_Meena_S", time: "10:30",
+    params: [
+      { p: "Lot I: Impeller RPM", v: "46", s: "Pass" }, { p: "Lot I: Chopper RPM", v: "16", s: "Pass" },
+      { p: "Lot II: Impeller RPM", v: "47", s: "Pass" }, { p: "Lot II: Chopper RPM", v: "16", s: "Pass" },
+      { p: "Lot III: Impeller RPM", v: "46", s: "Pass" }, { p: "Lot III: Chopper RPM", v: "17", s: "Pass" },
+    ],
+    equip: "EQ-110 (RMG-150)", area: "R20", notes: "3 sub-lots granulated per BMR1:DXLPR:FR03/R1" },
+  { step: 4, name: "Drying (FBD)", sop: "SOP-MFG-004 v2.1", status: "Completed", signedBy: "Op_Ravi_K", verifiedBy: "QA_Vinod_VK", time: "12:45",
+    params: [
+      { p: "Lot I: Inlet Temp", v: "59°C", s: "Pass" }, { p: "Lot I: Outlet Temp", v: "54°C", s: "Pass" }, { p: "Lot I: LOD", v: "1.88%", s: "Pass" },
+      { p: "Lot II: Inlet Temp", v: "59°C", s: "Pass" }, { p: "Lot II: LOD", v: "1.76%", s: "Pass" },
+      { p: "Lot III: Inlet Temp", v: "59°C", s: "Pass" }, { p: "Lot III: LOD", v: "2.08%", s: "Pass" },
+    ],
+    equip: "EQ-220 (FBD-60)", area: "R20", notes: "All 3 lots dried; LOD within 1-3% w/w spec" },
+  { step: 5, name: "Milling/Sizing", sop: "SOP-MFG-005 v1.5", status: "Completed", signedBy: "Op_Ravi_K", verifiedBy: "Sup_Meena_S", time: "13:30",
+    params: [{ p: "Screen Size", v: "1.0 mm", s: "Pass" }, { p: "Speed", v: "1500 RPM", s: "Pass" }],
+    equip: "EQ-305 (Multimill MM-30)", area: "R20", notes: "Dried granules milled for uniform PSD" },
+  { step: 6, name: "Blending & Lubrication", sop: "SOP-MFG-006 v2.0", status: "Completed", signedBy: "Op_Ravi_K", verifiedBy: "Sup_Meena_S", time: "14:15",
+    params: [
+      { p: "Dry Mixing-I RPM", v: "6 rpm / 20 min", s: "Pass" },
+      { p: "Dry Mixing-II RPM", v: "6 rpm / 2 min", s: "Pass" },
+      { p: "Compression RPM (Lubrication)", v: "50", s: "Pass" },
+    ],
+    equip: "EQ-150 (Octagonal Blender OB-200)", area: "R22", notes: "Blended with lubricant (MgSt) and blend uniformity passed" },
+  { step: 7, name: "Compression", sop: "SOP-MFG-007 v3.2", status: "In Progress", signedBy: "Op_Suresh_M", verifiedBy: "-", time: "14:45",
+    params: [
+      { p: "Thickness", v: "1.0 - 3.46 mm", s: "Pass" },
+      { p: "Hardness Min", v: "54.0 N", s: "Pass" }, { p: "Hardness Max", v: "72.0 N", s: "Pass" },
+      { p: "Average Weight", v: "150.09 mg", s: "Pass" },
+      { p: "Compression Yield", v: "98.01%", s: "Pass" },
+    ],
+    equip: "EQ-510 (RTP-45) + EQ-601 (MD-200) + EQ-610 (TD-100)", area: "R30", notes: "Machine running; real-time weight/hardness monitoring active" },
+  { step: 8, name: "Coating", sop: "SOP-MFG-008 v2.5", status: "Pending", signedBy: "-", verifiedBy: "-", time: "-",
+    params: [
+      { p: "Pan Speed", v: "1-3 RPM", s: "Spec" },
+      { p: "Bed Temp Max", v: "≤48°C", s: "Spec" },
+      { p: "Exhaust Temp", v: "41-44°C", s: "Spec" },
+      { p: "Atomizing Air Pressure", v: "6 bar", s: "Spec" },
+      { p: "Target Coating Yield", v: "≥95%", s: "Spec" },
+    ],
+    equip: "EQ-710 (Auto Coater AC-48)", area: "R40", notes: "Awaiting compression completion" },
+  { step: 9, name: "Inspection", sop: "SOP-QC-010 v2.0", status: "Pending", signedBy: "-", verifiedBy: "-", time: "-",
+    params: [{ p: "Target Inspection Yield", v: "≥96%", s: "Spec" }],
+    equip: "EQ-801 (Inspection Table)", area: "P10", notes: "Visual inspection + yield reconciliation" },
+  { step: 10, name: "Packing", sop: "SOP-PKG-001 v4.0", status: "Pending", signedBy: "-", verifiedBy: "-", time: "-",
+    params: [
+      { p: "Forming Plate Temp", v: "101-128°C", s: "Spec" },
+      { p: "Sealing Plate Temp", v: "131-159°C", s: "Spec" },
+      { p: "Leak Test", v: "0 defects", s: "Spec" },
+      { p: "Target Packing Yield", v: "≥97%", s: "Spec" },
+    ],
+    equip: "EP-401 (BP-300) + EP-501 (AC-200)", area: "P15/P20", notes: "Primary blister + secondary carton" },
+];
 
-const Tbl = ({ cols, data, onRow }) => <div style={{ overflowX: "auto", border: `1px solid ${G200}`, borderRadius: 10 }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}><thead><tr style={{ background: G50 }}>{cols.map((c, i) => <th key={i} style={{ padding: "10px 14px", textAlign: "left", fontWeight: 600, color: G700, borderBottom: `1px solid ${G200}`, whiteSpace: "nowrap", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5 }}>{c.l}</th>)}</tr></thead><tbody>{data.map((r, ri) => <tr key={ri} onClick={() => onRow?.(r)} style={{ borderBottom: `1px solid ${G100}`, cursor: onRow ? "pointer" : "default" }} onMouseEnter={e => { if (onRow) e.currentTarget.style.background = LB; }} onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>{cols.map((c, ci) => <td key={ci} style={{ padding: "10px 14px", color: G700 }}>{c.r ? c.r(r) : r[c.k]}</td>)}</tr>)}</tbody></table></div>;
+// ── Materials (BOM for DXLPR0185) ──────────────────
+const BOM_DATA = [
+  { material: "Dexlansoprazole (API)", code: "RAND501", arNo: "025RM0116109", required: "3.750 kg", dispensed: "3.755 kg", lot: "LOT-DXL-2025-01", status: "Verified", holdTime: "72h" },
+  { material: "Sugar Spheres", code: "REND101", arNo: "025RM0318527", required: "15.000 kg", dispensed: "15.012 kg", lot: "LOT-SS-2024-08", status: "Verified", holdTime: "96h" },
+  { material: "Hypromellose Phthalate", code: "REND102", arNo: "025RM0353909", required: "2.250 kg", dispensed: "2.253 kg", lot: "LOT-HMP-2024-12", status: "Verified", holdTime: "48h" },
+  { material: "Sucrose", code: "REND103", arNo: "025RM0353603", required: "8.100 kg", dispensed: "8.108 kg", lot: "LOT-SUC-2025-01", status: "Verified", holdTime: "96h" },
+  { material: "Methacrylic Acid Copolymer", code: "REND104", arNo: "025RM0457255", required: "1.500 kg", dispensed: "1.502 kg", lot: "LOT-MAC-2024-11", status: "Verified", holdTime: "48h" },
+  { material: "Talc", code: "REND105", arNo: "025RM0441828", required: "0.900 kg", dispensed: "0.901 kg", lot: "LOT-TLC-2024-10", status: "Verified", holdTime: "96h" },
+  { material: "Triethyl Citrate", code: "REND106", arNo: "025RM0333045", required: "0.450 kg", dispensed: "0.451 kg", lot: "LOT-TEC-2025-01", status: "Verified", holdTime: "48h" },
+  { material: "Polysorbate 80", code: "REND107", arNo: "025RM0132621", required: "0.225 kg", dispensed: "-", lot: "-", status: "Pending", holdTime: "-" },
+  { material: "Colloidal Silicon Dioxide", code: "REND110", arNo: "025RM0354447", required: "0.675 kg", dispensed: "0.676 kg", lot: "LOT-CSD-2024-09", status: "Verified", holdTime: "96h" },
+  { material: "Magnesium Carbonate", code: "REND109", arNo: "025RM0444533", required: "1.125 kg", dispensed: "1.126 kg", lot: "LOT-MGC-2024-12", status: "Verified", holdTime: "96h" },
+];
 
-const CatBadge = ({ c }) => { const m = { Critical: RD, Major: O, Minor: YL, Info: BL }; const cl = m[c] || G500; return <span style={{ background: `${cl}18`, color: cl, padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>{c}</span>; };
+// ── IPC Data ──────────────────────────────────────
+const IPC_DATA = [
+  { id: "IPC-001", batch: "DXLPR0185", stage: "Drying", check: "LOD (Loss on Drying)", limit: "1.0 - 3.0% w/w", result: "1.88%", status: "Pass", equip: "EQ-220", time: "12:30" },
+  { id: "IPC-002", batch: "DXLPR0185", stage: "Blending", check: "Blend Uniformity (RSD)", limit: "NMT 5.0%", result: "2.3%", status: "Pass", equip: "EQ-150", time: "14:05" },
+  { id: "IPC-003", batch: "DXLPR0185", stage: "Compression", check: "Avg Weight", limit: "150 ± 7.5 mg", result: "150.09 mg", status: "Pass", equip: "EQ-510", time: "15:00" },
+  { id: "IPC-004", batch: "DXLPR0185", stage: "Compression", check: "Hardness", limit: "50 - 76 N", result: "54.0 - 72.0 N", status: "Pass", equip: "EQ-510", time: "15:00" },
+  { id: "IPC-005", batch: "DXLPR0185", stage: "Compression", check: "Thickness", limit: "1.0 - 3.5 mm", result: "3.26 mm", status: "Pass", equip: "EQ-510", time: "15:00" },
+  { id: "IPC-006", batch: "DXLPR0185", stage: "Compression", check: "Compression Yield", limit: "≥ 96.0%", result: "98.01%", status: "Pass", equip: "EQ-510", time: "16:00" },
+  { id: "IPC-007", batch: "DXLPR0186", stage: "Coating", check: "Bed Temp Max", limit: "≤ 48°C", result: "47.2°C", status: "Pass", equip: "EQ-710", time: "10:00" },
+  { id: "IPC-008", batch: "DXLPR0186", stage: "Coating", check: "Pan Speed", limit: "1 - 3 RPM", result: "2.8 RPM", status: "Pass", equip: "EQ-710", time: "10:30" },
+  { id: "IPC-009", batch: "DXLPR0186", stage: "Coating", check: "Weight Gain", limit: "3.0% ± 0.5%", result: "3.7%", status: "Alert", equip: "EQ-710", time: "14:00" },
+];
 
-const BarcodeLabel = ({ batch, container, material, weight, stage }) => (
-  <div style={{ border: `2px solid ${DK}`, borderRadius: 8, padding: 12, width: 280, background: "#fff", fontFamily: "monospace" }}>
-    <div style={{ display: "flex", justifyContent: "space-between", borderBottom: `1px solid ${G300}`, paddingBottom: 6, marginBottom: 6 }}>
-      <span style={{ fontSize: 10, fontWeight: 700, color: DK }}>MICRO LABS LTD - ML11</span>
-      <span style={{ fontSize: 9, color: G500 }}>GMP Label</span>
-    </div>
-    <div style={{ display: "flex", gap: 10 }}>
-      <div style={{ flex: 1, fontSize: 10 }}>
-        <div><span style={{ color: G500 }}>Batch:</span> <b>{batch}</b></div>
-        <div><span style={{ color: G500 }}>Material:</span> {material}</div>
-        <div><span style={{ color: G500 }}>Container:</span> {container}</div>
-        <div><span style={{ color: G500 }}>Net Wt:</span> <b>{weight}</b></div>
-        <div><span style={{ color: G500 }}>Stage:</span> {stage}</div>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-        <svg width="60" height="60" viewBox="0 0 60 60">
-          {[0,1,2,3,4,5,6,7,8,9].map(r => [0,1,2,3,4,5,6,7,8,9].map(c => {
-            const fill = ((r + c) % 3 === 0 || (r * c) % 7 < 3) ? DK : "#fff";
-            return <rect key={`${r}-${c}`} x={c*6} y={r*6} width={6} height={6} fill={fill} />;
-          }))}
-          <rect x={0} y={0} width={18} height={18} fill={DK} rx={2} />
-          <rect x={3} y={3} width={12} height={12} fill="#fff" rx={1} />
-          <rect x={5} y={5} width={8} height={8} fill={DK} rx={1} />
-          <rect x={42} y={0} width={18} height={18} fill={DK} rx={2} />
-          <rect x={45} y={3} width={12} height={12} fill="#fff" rx={1} />
-          <rect x={47} y={5} width={8} height={8} fill={DK} rx={1} />
-          <rect x={0} y={42} width={18} height={18} fill={DK} rx={2} />
-          <rect x={3} y={45} width={12} height={12} fill="#fff" rx={1} />
-          <rect x={5} y={47} width={8} height={8} fill={DK} rx={1} />
-        </svg>
-        <span style={{ fontSize: 7, color: G500 }}>2D Code</span>
-      </div>
-    </div>
-    <div style={{ borderTop: `1px solid ${G300}`, paddingTop: 4, marginTop: 6, display: "flex", justifyContent: "space-between", fontSize: 8, color: G400 }}>
-      <span>Date: {new Date().toLocaleDateString("en-IN")}</span>
-      <span>e-Sign: Operator_A</span>
-    </div>
+// ── Master Templates ──────────────────────
+const TEMPLATES = [
+  { id: "MFR2:DXLPR:FR01", product: "Dexlansoprazole DR 60mg", type: "MFR", version: "FR01", status: "Obsoleted", effectiveDate: "2019-01-15", stages: 10, prevVersion: "-", revisionReason: "Initial MFR release" },
+  { id: "MFR2:DXLPR:FR02", product: "Dexlansoprazole DR 60mg", type: "MFR", version: "FR02", status: "Obsoleted", effectiveDate: "2020-03-01", stages: 10, prevVersion: "FR01/R1", revisionReason: "Granulation parameters updated per CPV data" },
+  { id: "MFR2:DXLPR:FR02/R2", product: "Dexlansoprazole DR 60mg", type: "MFR", version: "FR02/R2", status: "Obsoleted", effectiveDate: "2022-06-01", stages: 10, prevVersion: "FR02/R1", revisionReason: "Coating process optimization" },
+  { id: "MFR1:DXLPR:FR03", product: "Dexlansoprazole DR 60mg", type: "MFR", version: "FR03", status: "Obsoleted", effectiveDate: "2023-01-15", stages: 10, prevVersion: "FR02/R2", revisionReason: "Scale-up from 15L to 45L batch size" },
+  { id: "MFR1:DXLPR:FR03/R1", product: "Dexlansoprazole DR 60mg", type: "MFR", version: "FR03/R1", status: "Approved", effectiveDate: "2024-06-01", stages: 10, prevVersion: "FR03", revisionReason: "Compression speed optimization & IPC frequency update" },
+  { id: "MFR1:DXLPR:FR03/R2", product: "Dexlansoprazole DR 60mg", type: "MFR", version: "FR03/R2", status: "Under Review", effectiveDate: "-", stages: 10, prevVersion: "FR03/R1", revisionReason: "New coating machine qualification (EQ-711)" },
+  { id: "BMR1:DXLPR:FR03/R1", product: "Dexlansoprazole DR 60mg", type: "BMR", version: "FR03/R1", status: "Approved", effectiveDate: "2024-06-01", stages: 10, prevVersion: "FR03", revisionReason: "Aligned with MFR FR03/R1 changes" },
+  { id: "MPR:DXLPR:C:FR03", product: "Dexlansoprazole DR 60mg (2X15)", type: "MPR", version: "C:FR03", status: "Approved", effectiveDate: "2024-06-01", stages: 4, prevVersion: "B:FR02/R1", revisionReason: "New carton artwork per market requirement" },
+];
+
+// ── Deviations ──────────────────────
+const DEVIATIONS = [
+  { id: "DEV-2025-011", batch: "DXLPR0186", type: "Process", cat: "Minor", desc: "Coating weight gain exceeded upper limit by 0.2% (3.7% vs 3.5%)", status: "Open", by: "Op_Suresh_M", date: "2025-02-06", stage: "Coating" },
+  { id: "DEV-2025-010", batch: "DXLPR0184", type: "Equipment", cat: "Major", desc: "EQ-711 qualification not completed before use", status: "Under Investigation", by: "Sup_Meena_S", date: "2025-01-20", stage: "Coating" },
+  { id: "DEV-2025-009", batch: "DXLPR0184", type: "Material", cat: "Info", desc: "API lot change mid-dispensing (same AR No.)", status: "Closed", by: "QA_Vinod_VK", date: "2025-01-18", stage: "Sifting" },
+];
+
+// ── Audit Trail ──────────────────────
+const AUDIT = [
+  { id: "AUD-50124", ts: "2025-02-08 15:02:11", user: "Op_Suresh_M", action: "Batch Step Execution", detail: "DXLPR0185 Step 7 (Compression) started | Equip: EQ-510", module: "Batch" },
+  { id: "AUD-50123", ts: "2025-02-08 14:16:33", user: "Op_Ravi_K", action: "E-Signature (Complete)", detail: "DXLPR0185 Step 6 (Blending) completed | Verified by Sup_Meena_S", module: "Signature" },
+  { id: "AUD-50122", ts: "2025-02-08 13:31:05", user: "Op_Ravi_K", action: "IPC Entry", detail: "LOD Lot III = 2.08% for DXLPR0185 Step 4 [PASS within 1-3%]", module: "Quality" },
+  { id: "AUD-50121", ts: "2025-02-08 12:48:22", user: "System", action: "Auto Data Capture", detail: "FBD Outlet Temp: 54°C captured from EQ-220 PLC for DXLPR0185", module: "Equipment" },
+  { id: "AUD-50120", ts: "2025-02-08 08:17:55", user: "Op_Ravi_K", action: "Material Scan", detail: "API (RAND501) AR: 025RM0116109 scanned and verified for DXLPR0185", module: "Material" },
+  { id: "AUD-50119", ts: "2025-02-08 08:05:41", user: "Op_Ravi_K", action: "Login", detail: "Successful login via User ID + Password + Biometric", module: "Security" },
+  { id: "AUD-50118", ts: "2025-02-07 22:15:00", user: "System", action: "Hold Time Alert", detail: "CHT approaching limit (3h 30m / 4h) for EQ-710 Coating Machine", module: "Equipment" },
+];
+
+// ── Logbooks ──────────────────────
+const LOGBOOKS = [
+  { id: "LOG-301", type: "Equipment Usage", equip: "EQ-110 (RMG-150)", area: "Granulation (R20)", entries: 185, last: "2025-02-08 10:30", status: "Active" },
+  { id: "LOG-302", type: "Cleaning Log", equip: "EQ-710 (AC-48)", area: "Coating (R40)", entries: 92, last: "2025-02-07 22:00", status: "Active" },
+  { id: "LOG-303", type: "Area Logbook", equip: "-", area: "Compression Suite R30", entries: 340, last: "2025-02-08 14:50", status: "Active" },
+  { id: "LOG-304", type: "FBD Drying Log", equip: "EQ-220 (FBD-60)", area: "Drying (R20)", entries: 165, last: "2025-02-08 12:45", status: "Active" },
+  { id: "LOG-305", type: "Blister Line Log", equip: "EP-401 (BP-300)", area: "Packing (P15)", entries: 210, last: "2025-02-08 09:15", status: "Active" },
+];
+
+// ══════════════════════════════════════════════════════════
+// ── UI COMPONENTS (Mobile-first) ──────────────────────────
+// ══════════════════════════════════════════════════════════
+
+const Badge = ({ s, sz = "sm" }) => {
+  const m = { Running: C.gr, Connected: C.gr, Active: C.gr, Released: C.gr, Closed: C.gr, Clean: C.gr, Completed: C.gr, Pass: C.gr, Qualified: C.gr, Approved: C.gr, Verified: C.gr, Passed: C.gr, Idle: C.yl, "In Progress": C.bl, "Under Review": C.yl, "Under Testing": C.yl, "Under Investigation": C.yl, Pending: C.yl, Due: C.yl, Open: C.rd, Maintenance: C.rd, Dirty: C.rd, Fail: C.rd, Alert: C.or, Deactivated: C.t4, Obsoleted: C.t4, Spec: C.bl, Minor: C.yl, Major: C.or, Critical: C.rd, Info: C.bl };
+  const c = m[s] || C.t4;
+  return <span style={{ background: `${c}14`, color: c, padding: sz === "sm" ? "2px 8px" : "4px 12px", borderRadius: 20, fontSize: sz === "sm" ? 10 : 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap", letterSpacing: 0.2 }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: c, flexShrink: 0 }} />{s}</span>;
+};
+
+const Cd = ({ children, style = {}, onClick, accent }) => (
+  <div onClick={onClick} style={{ background: C.card, borderRadius: 10, border: `1px solid ${C.bor}`, padding: "14px 16px", cursor: onClick ? "pointer" : "default", borderTop: accent ? `3px solid ${accent}` : undefined, transition: "box-shadow 0.15s", ...style }}
+    onMouseEnter={e => { if (onClick) e.currentTarget.style.boxShadow = "0 2px 12px rgba(0,0,0,0.06)"; }}
+    onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; }}>
+    {children}
   </div>
 );
 
-// ── Tab Components ──────────────────────────────────────
+const KPI = ({ label, value, sub, color = C.pri, icon }) => (
+  <Cd style={{ display: "flex", alignItems: "center", gap: 12 }}>
+    <div style={{ width: 40, height: 40, borderRadius: 10, background: `${color}12`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{icon}</div>
+    <div style={{ minWidth: 0 }}>
+      <div style={{ fontSize: 20, fontWeight: 700, color: C.t1, lineHeight: 1.1 }}>{value}</div>
+      <div style={{ fontSize: 11, color: C.t3, marginTop: 1 }}>{label}</div>
+      {sub && <div style={{ fontSize: 10, color, marginTop: 1, fontWeight: 500 }}>{sub}</div>}
+    </div>
+  </Cd>
+);
 
-// 1. DASHBOARD
+const Bar = ({ v, h = 5, c = C.pri }) => (
+  <div style={{ width: "100%", height: h, background: C.borL, borderRadius: h, overflow: "hidden" }}>
+    <div style={{ width: `${v}%`, height: "100%", background: c, borderRadius: h, transition: "width 0.6s" }} />
+  </div>
+);
+
+const Sec = ({ children, sub }) => (
+  <div style={{ marginBottom: 14 }}>
+    <h2 style={{ fontSize: 16, fontWeight: 700, color: C.t1, margin: 0 }}>{children}</h2>
+    {sub && <p style={{ fontSize: 12, color: C.t3, margin: "3px 0 0", lineHeight: 1.4 }}>{sub}</p>}
+  </div>
+);
+
+const Grid = ({ cols = "repeat(auto-fit, minmax(160px, 1fr))", gap = 10, children, style = {} }) => (
+  <div style={{ display: "grid", gridTemplateColumns: cols, gap, ...style }}>{children}</div>
+);
+
+// Mobile-friendly scrollable table
+const Tbl = ({ cols, data, onRow }) => (
+  <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", border: `1px solid ${C.bor}`, borderRadius: 10 }}>
+    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: Math.max(cols.length * 110, 400) }}>
+      <thead>
+        <tr style={{ background: C.borL }}>
+          {cols.map((c, i) => (
+            <th key={i} style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, color: C.t2, borderBottom: `1px solid ${C.bor}`, whiteSpace: "nowrap", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.4 }}>{c.l}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {data.map((r, ri) => (
+          <tr key={ri} onClick={() => onRow?.(r)} style={{ borderBottom: `1px solid ${C.borL}`, cursor: onRow ? "pointer" : "default" }}
+            onMouseEnter={e => { if (onRow) e.currentTarget.style.background = C.priL; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>
+            {cols.map((c, ci) => (
+              <td key={ci} style={{ padding: "8px 10px", color: C.t2 }}>{c.r ? c.r(r) : r[c.k]}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+);
+
+const BackBtn = ({ onClick, label = "Back" }) => (
+  <button onClick={onClick} style={{ background: "none", border: "none", color: C.pri, fontWeight: 600, cursor: "pointer", padding: "4px 0", marginBottom: 12, fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>
+    <span style={{ fontSize: 14 }}>←</span> {label}
+  </button>
+);
+
+// ══════════════════════════════════════════════════════════
+// ── TAB: DASHBOARD ────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+
 const DashboardTab = () => {
   const ab = BATCHES.filter(b => b.status === "In Progress").length;
   const re = EQUIP.filter(e => e.status === "Running").length;
   const od = DEVIATIONS.filter(d => !d.status.includes("Closed")).length;
-  const bc = BALANCES.filter(b => b.status === "Connected").length;
-  return <div>
-    <Sec sub="Real-time manufacturing overview for ML11 Veerasandra">Production Dashboard</Sec>
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 14, marginBottom: 24 }}>
-      <KPI icon="⚡" label="Active Batches" value={ab} sub="2 in final stages" color={BL} />
-      <KPI icon="🏭" label="Equipment Running" value={`${re}/${EQUIP.length}`} color={GR} />
-      <KPI icon="⚖️" label="Balances Connected" value={`${bc}/${BALANCES.length}`} sub={BALANCES.filter(b=>b.dailyCheck==="Fail").length > 0 ? "1 daily check failed" : "All verified"} color={bc === BALANCES.length ? GR : YL} />
-      <KPI icon="📊" label="Avg. Yield" value="98.4%" sub="+0.3% vs last month" color={GR} />
-      <KPI icon="⚠️" label="Open Deviations" value={od} sub="1 critical pending" color={od > 0 ? RD : GR} />
-      <KPI icon="🔬" label="IPC Checks Today" value={IPC_DATA.length} sub={`${IPC_DATA.filter(i=>i.status==="Alert").length} alerts`} color={IPC_DATA.filter(i=>i.status==="Alert").length > 0 ? O : GR} />
-    </div>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 24 }}>
+  return (
+    <div>
+      <Sec sub="Dexlansoprazole DR Capsules 60mg (DXLPR) | Real-time production overview">Production Dashboard</Sec>
+      <Grid cols="repeat(auto-fit, minmax(150px, 1fr))" gap={10} style={{ marginBottom: 18 }}>
+        <KPI icon="⚡" label="Active Batches" value={ab} sub="2 in final stages" color={C.bl} />
+        <KPI icon="🏭" label="Equipment Running" value={`${re}/${EQUIP.length}`} color={C.gr} />
+        <KPI icon="📊" label="Avg. Yield" value="98.1%" sub="+0.2% vs last month" color={C.gr} />
+        <KPI icon="⚠️" label="Open Deviations" value={od} sub={od > 0 ? "1 under investigation" : ""} color={od > 0 ? C.rd : C.gr} />
+        <KPI icon="🔬" label="IPC Checks Today" value={IPC_DATA.length} sub={`${IPC_DATA.filter(i => i.status === "Alert").length} alerts`} color={C.or} />
+        <KPI icon="📦" label="Total Batches (DXLPR)" value="230" sub="Since Jan 2019" color={C.pu} />
+      </Grid>
+
+      <Grid cols="1fr" gap={14} style={{ marginBottom: 18 }}>
+        <Cd>
+          <div style={{ fontSize: 13, fontWeight: 600, color: C.t1, marginBottom: 12 }}>Active Batch Progress (10-Stage Flow)</div>
+          {BATCHES.filter(b => b.status === "In Progress").map(b => (
+            <div key={b.id} style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4, flexWrap: "wrap", gap: 4 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: C.t1 }}>{b.id}</span>
+                <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                  <span style={{ fontSize: 10, color: C.t3 }}>{b.stage}</span>
+                  <span style={{ fontSize: 11, color: C.pri, fontWeight: 700 }}>{b.progress}%</span>
+                </div>
+              </div>
+              <Bar v={b.progress} c={b.progress >= 90 ? C.gr : C.pri} />
+              <div style={{ fontSize: 10, color: C.t4, marginTop: 3 }}>MFR: {b.mfr} | Size: {b.batchSize} | Pack: {b.packSize}</div>
+            </div>
+          ))}
+        </Cd>
+      </Grid>
+
       <Cd>
-        <div style={{ fontSize: 14, fontWeight: 600, color: DK, marginBottom: 14 }}>Active Batch Progress</div>
-        {BATCHES.filter(b => b.status === "In Progress").map(b => <div key={b.id} style={{ marginBottom: 14 }}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ fontSize: 13, fontWeight: 500, color: G700 }}>{b.id} — {b.product}</span><span style={{ fontSize: 12, color: O, fontWeight: 600 }}>{b.progress}%</span></div><Bar v={b.progress} /><div style={{ fontSize: 11, color: G400, marginTop: 3 }}>Stage: {b.stage} | Template: {b.template} | Yield: {b.yield}</div></div>)}
-      </Cd>
-      <Cd>
-        <div style={{ fontSize: 14, fontWeight: 600, color: DK, marginBottom: 14 }}>Stage Distribution</div>
-        {STAGES.filter(s => s !== "Complete").map(s => { const c = BATCHES.filter(b => b.stage === s).length; return <div key={s} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}><div style={{ width: 100, fontSize: 12, color: G500, textAlign: "right" }}>{s}</div><div style={{ flex: 1, height: 18, background: G100, borderRadius: 4, overflow: "hidden" }}><div style={{ width: `${Math.max(c * 20, c > 0 ? 8 : 0)}%`, height: "100%", background: c > 0 ? O : "transparent", borderRadius: 4 }} /></div><div style={{ width: 24, fontSize: 13, fontWeight: 600, color: c > 0 ? O : G300 }}>{c}</div></div>; })}
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.t1, marginBottom: 10 }}>10-Stage Distribution</div>
+        {STAGES_10.map(s => {
+          const c = BATCHES.filter(b => b.status === "In Progress" && b.stage === s.name).length;
+          return (
+            <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+              <div style={{ width: 20, fontSize: 12, textAlign: "center" }}>{s.icon}</div>
+              <div style={{ width: 90, fontSize: 11, color: C.t3, textAlign: "right" }}>{s.name}</div>
+              <div style={{ flex: 1, height: 16, background: C.borL, borderRadius: 3, overflow: "hidden" }}>
+                <div style={{ width: `${Math.max(c * 25, c > 0 ? 10 : 0)}%`, height: "100%", background: c > 0 ? C.pri : "transparent", borderRadius: 3 }} />
+              </div>
+              <div style={{ width: 20, fontSize: 12, fontWeight: 600, color: c > 0 ? C.pri : C.t4 }}>{c}</div>
+            </div>
+          );
+        })}
       </Cd>
     </div>
-  </div>;
+  );
 };
 
-// 2. MASTER TEMPLATES (NEW - PRD 5.1, TER-2.2.16-2.2.21)
-const TemplatesTab = () => {
-  const [sel, setSel] = useState(null);
-  const t = TEMPLATES.find(x => x.id === sel);
-  return <div>
-    <Sec sub="Template/recipe management per PRD 5.1, TER-2.2.16-2.2.21 | Version control, approval workflow, change history">Master Data & Templates</Sec>
-    {!sel ? <>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 16 }}>
-        <Cd style={{ textAlign: "center", borderTop: `3px solid ${GR}` }}><div style={{ fontSize: 22, fontWeight: 700, color: GR }}>{TEMPLATES.filter(t=>t.status==="Approved").length}</div><div style={{ fontSize: 11, color: G500 }}>Approved</div></Cd>
-        <Cd style={{ textAlign: "center", borderTop: `3px solid ${YL}` }}><div style={{ fontSize: 22, fontWeight: 700, color: YL }}>{TEMPLATES.filter(t=>t.status==="Under Review").length}</div><div style={{ fontSize: 11, color: G500 }}>Under Review</div></Cd>
-        <Cd style={{ textAlign: "center", borderTop: `3px solid ${BL}` }}><div style={{ fontSize: 22, fontWeight: 700, color: BL }}>{TEMPLATES.length}</div><div style={{ fontSize: 11, color: G500 }}>Total Templates</div></Cd>
-        <Cd style={{ textAlign: "center", borderTop: `3px solid ${PU}` }}><div style={{ fontSize: 22, fontWeight: 700, color: PU }}>{new Set(TEMPLATES.map(t=>t.product)).size}</div><div style={{ fontSize: 11, color: G500 }}>Products Covered</div></Cd>
-      </div>
-      <Tbl cols={[
-        { l: "Template ID", r: r => <span style={{ fontWeight: 600, color: O, cursor: "pointer" }}>{r.id}</span> },
-        { l: "Product", k: "product" },
-        { l: "Type", k: "type" },
-        { l: "Version", r: r => <span style={{ fontFamily: "monospace", fontWeight: 600 }}>v{r.version}</span> },
-        { l: "Status", r: r => <Badge s={r.status} /> },
-        { l: "Stages", k: "stages" },
-        { l: "Change Control", r: r => <span style={{ fontFamily: "monospace", fontSize: 11 }}>{r.changeCtrl}</span> },
-        { l: "Effective Date", k: "effectiveDate" },
-      ]} data={TEMPLATES} onRow={r => setSel(r.id)} />
-      <Cd style={{ marginTop: 16 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: DK, marginBottom: 10 }}>Template Lifecycle Workflow (TER-2.2.18-2.2.20)</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 0, justifyContent: "center" }}>
-          {["Draft", "Review", "Approved", "In Use", "Revision", "Obsoleted"].map((s, i) => <div key={s} style={{ display: "flex", alignItems: "center" }}><div style={{ padding: "8px 16px", borderRadius: 20, background: i < 4 ? `${O}15` : G100, color: i < 4 ? O : G500, fontSize: 12, fontWeight: 600, border: `1px solid ${i < 4 ? O : G300}40` }}>{s}</div>{i < 5 && <div style={{ width: 24, height: 2, background: G300 }} />}</div>)}
-        </div>
-      </Cd>
-    </> : <div>
-      <button onClick={() => setSel(null)} style={{ background: "none", border: "none", color: O, fontWeight: 600, cursor: "pointer", padding: 0, marginBottom: 16, fontSize: 13 }}>← Back to Templates</button>
-      <Cd style={{ marginBottom: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <div><div style={{ fontSize: 20, fontWeight: 700, color: DK }}>{t.id}</div><div style={{ fontSize: 14, color: G500 }}>{t.product} | {t.type} | v{t.version}</div></div>
-          <Badge s={t.status} sz="md" />
-        </div>
-      </Cd>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 16 }}>
-        <Cd><div style={{ fontSize: 12, fontWeight: 600, color: DK, marginBottom: 8 }}>Version History (TER-2.2.20)</div>
-          <div style={{ fontSize: 11 }}>{[{ v: t.version, s: t.status, d: t.effectiveDate }, { v: t.prevVersion || "1.0", s: "Obsoleted", d: "Previous" }].map((h, i) => <div key={i} style={{ padding: "6px 0", borderBottom: `1px solid ${G100}`, display: "flex", justifyContent: "space-between" }}><span style={{ fontFamily: "monospace", fontWeight: 600 }}>v{h.v}</span><Badge s={h.s} /><span style={{ color: G400 }}>{h.d}</span></div>)}</div>
-        </Cd>
-        <Cd><div style={{ fontSize: 12, fontWeight: 600, color: DK, marginBottom: 8 }}>Change Control</div>
-          <div style={{ fontSize: 11, color: G700 }}><div>CC#: <b>{t.changeCtrl}</b></div><div style={{ marginTop: 4 }}>Reason: {t.revisionReason}</div><div style={{ marginTop: 4 }}>Approved by: {t.approvedBy}</div><div style={{ marginTop: 4 }}>Stages: {t.stages} steps</div></div>
-        </Cd>
-        <Cd><div style={{ fontSize: 12, fontWeight: 600, color: DK, marginBottom: 8 }}>Linked Records</div>
-          <div style={{ fontSize: 11 }}>{[`Batches using this template: ${BATCHES.filter(b=>b.template===t.id).length}`, "Equipment qualification: Linked", "BOM from SAP: Synced", "SOPs from DMS: Current version"].map((l, i) => <div key={i} style={{ padding: "4px 0", color: G700 }}>✓ {l}</div>)}</div>
-        </Cd>
-      </div>
-    </div>}
-  </div>;
-};
+// ══════════════════════════════════════════════════════════
+// ── TAB: BATCH EXECUTION (10-Step) ────────────────────────
+// ══════════════════════════════════════════════════════════
 
-// 3. BATCH EXECUTION (ENHANCED - PRD 5.2)
 const BatchTab = () => {
   const [sel, setSel] = useState(null);
   const b = BATCHES.find(x => x.id === sel);
-  const ci = b ? STAGES.indexOf(b.stage) : -1;
-  return <div>
-    <Sec sub="Electronic batch execution per PRD 5.2 | Guided workflow, maker-checker, e-sign, SOP links">Batch Execution (eBMR / eBPR)</Sec>
-    {!sel ? <Tbl cols={[
-      { l: "Batch", r: r => <span style={{ fontWeight: 600, color: O, cursor: "pointer" }}>{r.id}</span> },
-      { l: "Product", k: "product" },
-      { l: "Template", r: r => <span style={{ fontSize: 11, fontFamily: "monospace" }}>{r.template}</span> },
-      { l: "Stage", k: "stage" },
-      { l: "Progress", r: r => <div style={{ width: 100 }}><Bar v={r.progress} /></div> },
-      { l: "Yield", k: "yield" },
-      { l: "Status", r: r => <Badge s={r.status} /> },
-      { l: "Devs", r: r => <span style={{ color: r.devs > 0 ? RD : GR, fontWeight: 600 }}>{r.devs}</span> },
-    ]} data={BATCHES} onRow={r => setSel(r.id)} /> : <div>
-      <button onClick={() => setSel(null)} style={{ background: "none", border: "none", color: O, fontWeight: 600, cursor: "pointer", padding: 0, marginBottom: 16, fontSize: 13 }}>← Back to Batch List</button>
-      <Cd style={{ marginBottom: 14 }}><div style={{ display: "flex", justifyContent: "space-between" }}><div><div style={{ fontSize: 20, fontWeight: 700, color: DK }}>{b.id}</div><div style={{ fontSize: 14, color: G500 }}>{b.product} | Size: {b.size} | Template: {b.template}</div></div><Badge s={b.status} sz="md" /></div></Cd>
-      <Cd style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: DK, marginBottom: 14 }}>Stage Progress (BFR-2.1.10)</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 0, overflowX: "auto", padding: "8px 0" }}>
-          {STAGES.map((s, i) => { const done = i < ci || b.stage === "Complete"; const cur = i === ci; return <div key={s} style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><div style={{ textAlign: "center" }}><div style={{ width: 34, height: 34, borderRadius: "50%", background: done ? GR : cur ? O : G200, color: (done || cur) ? "#fff" : G400, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, margin: "0 auto", boxShadow: cur ? `0 0 0 4px ${O}20` : "none" }}>{done ? "✓" : i + 1}</div><div style={{ fontSize: 9, color: cur ? O : done ? GR : G400, marginTop: 3, fontWeight: cur ? 700 : 400, maxWidth: 60, lineHeight: 1.2 }}>{s}</div></div>{i < STAGES.length - 1 && <div style={{ width: 24, height: 2, background: done ? GR : G200, margin: "0 1px", marginBottom: 18, flexShrink: 0 }} />}</div>; })}
+  const [expandedStep, setExpandedStep] = useState(null);
+
+  if (!sel) {
+    return (
+      <div>
+        <Sec sub="Electronic batch execution per 21 CFR Part 11 | 10-stage guided workflow with maker-checker e-sign">Batch Execution (eBMR / eBPR)</Sec>
+        <Tbl cols={[
+          { l: "Batch", r: r => <span style={{ fontWeight: 600, color: C.pri }}>{r.id}</span> },
+          { l: "MFR", r: r => <span style={{ fontSize: 10, fontFamily: "monospace" }}>{r.mfr}</span> },
+          { l: "Size", k: "batchSize" },
+          { l: "Stage", r: r => <span>{STAGES_10.find(s => s.name === r.stage)?.icon || "✅"} {r.stage}</span> },
+          { l: "Progress", r: r => <div style={{ width: 80 }}><Bar v={r.progress} /></div> },
+          { l: "Yield", k: "yield" },
+          { l: "Status", r: r => <Badge s={r.status} /> },
+          { l: "Devs", r: r => <span style={{ color: r.devs > 0 ? C.rd : C.gr, fontWeight: 600 }}>{r.devs}</span> },
+        ]} data={BATCHES} onRow={r => setSel(r.id)} />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <BackBtn onClick={() => setSel(null)} label="Back to Batch List" />
+
+      {/* Batch Header */}
+      <Cd style={{ marginBottom: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: C.t1 }}>{b.id}</div>
+            <div style={{ fontSize: 11, color: C.t3, marginTop: 2 }}>{b.product} | {b.batchSize} | {b.packSize}</div>
+            <div style={{ fontSize: 10, color: C.t4, marginTop: 2, fontFamily: "monospace" }}>MFR: {b.mfr} | BMR: {b.bmr}</div>
+            <div style={{ fontSize: 10, color: C.t4, fontFamily: "monospace" }}>MPR: {b.mpr} | BPR: {b.bpr}</div>
+          </div>
+          <Badge s={b.status} sz="md" />
         </div>
       </Cd>
-      <Cd style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: DK, marginBottom: 10 }}>Step-by-Step Execution Log (PRD 5.2: Guided workflow)</div>
-        <Tbl cols={[
-          { l: "#", r: r => <span style={{ fontWeight: 600, color: DK }}>{r.step}</span> },
-          { l: "Step", r: r => <span style={{ fontWeight: 500 }}>{r.name}</span> },
-          { l: "SOP Reference", r: r => <span style={{ color: BL, fontSize: 11, textDecoration: "underline", cursor: "pointer" }}>{r.sop}</span> },
-          { l: "Status", r: r => <Badge s={r.status} /> },
-          { l: "Executed By", r: r => r.signedBy || "-" },
-          { l: "Verified By (Checker)", r: r => r.verifiedBy || <span style={{ color: YL, fontWeight: 500 }}>Awaiting</span> },
-          { l: "Time", r: r => r.time || "-" },
-        ]} data={EXEC_STEPS} />
+
+      {/* 10-Stage Progress Bar */}
+      <Cd style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: C.t1, marginBottom: 10 }}>10-Stage Progress</div>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 0, overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: 4 }}>
+          {STAGES_10.map((s, i) => {
+            const done = i < (b.stageIdx - 1);
+            const cur = i === (b.stageIdx - 1);
+            return (
+              <div key={s.id} style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+                <div style={{ textAlign: "center", minWidth: 40 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: "50%",
+                    background: done ? C.gr : cur ? C.pri : C.borL,
+                    color: (done || cur) ? "#fff" : C.t4,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 11, fontWeight: 700, margin: "0 auto",
+                    boxShadow: cur ? `0 0 0 3px ${C.pri}30` : "none",
+                  }}>
+                    {done ? "✓" : s.id}
+                  </div>
+                  <div style={{ fontSize: 8, color: cur ? C.pri : done ? C.gr : C.t4, marginTop: 2, fontWeight: cur ? 700 : 400, lineHeight: 1.1 }}>{s.short}</div>
+                </div>
+                {i < STAGES_10.length - 1 && <div style={{ width: 12, height: 2, background: done ? C.gr : C.borL, marginBottom: 14, flexShrink: 0 }} />}
+              </div>
+            );
+          })}
+        </div>
       </Cd>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-        <Cd><div style={{ fontSize: 13, fontWeight: 600, color: DK, marginBottom: 8 }}>Yield Reconciliation (TER-2.2.24)</div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: parseFloat(b.yield) >= 98 ? GR : O }}>{b.yield || "Pending"}</div>
-          <div style={{ fontSize: 11, color: G400 }}>Acceptance: 95.0% - 101.0%</div>
-          <div style={{ marginTop: 8, padding: "6px 10px", background: G50, borderRadius: 6, fontSize: 11, color: G500 }}>Theoretical: {b.size} | Formula per {b.template}</div>
-        </Cd>
-        <Cd><div style={{ fontSize: 13, fontWeight: 600, color: DK, marginBottom: 8 }}>Hold Time Tracking (BFR-2.1.13)</div>
-          {[{ l: "CHT (Granulation)", v: "3h 20m", lim: "4h", ok: true }, { l: "DHT (Drying)", v: "18h", lim: "48h", ok: true }, { l: "Material Hold", v: "45h", lim: "72h", ok: true }].map((h, i) => <div key={i} style={{ padding: "5px 8px", background: h.ok ? `${GR}08` : `${RD}08`, borderRadius: 6, border: `1px solid ${h.ok ? GR : RD}30`, marginBottom: 4 }}><div style={{ fontSize: 10, color: G500 }}>{h.l}</div><div style={{ fontSize: 13, fontWeight: 600, color: h.ok ? GR : RD }}>{h.v} <span style={{ fontSize: 10, fontWeight: 400, color: G400 }}>/ {h.lim}</span></div></div>)}
-        </Cd>
-        <Cd><div style={{ fontSize: 13, fontWeight: 600, color: DK, marginBottom: 8 }}>Shelf Life (TER-2.2.22)</div>
-          <div style={{ fontSize: 11, color: G700 }}>{[{ l: "Product Shelf Life", v: "24 months" }, { l: "Mfg Date (auto)", v: b.start }, { l: "Expiry Date (calc)", v: "2027-02-01" }, { l: "Date Format", v: "MM/YYYY per site" }, { l: "First Process Step", v: "Dispensing" }].map((r, i) => <div key={i} style={{ padding: "3px 0", borderBottom: `1px solid ${G100}`, display: "flex", justifyContent: "space-between" }}><span style={{ color: G500 }}>{r.l}:</span> <b>{r.v}</b></div>)}</div>
-        </Cd>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 14 }}>
-        <Cd>
-          <div style={{ fontSize: 13, fontWeight: 600, color: DK, marginBottom: 8 }}>Batch Flags (TER-2.2.33)</div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {[{ flag: "Validation Batch", active: b.id === "BN-2025-004", c: PU }, { flag: "Stability Sample", active: true, c: BL }, { flag: "Submission Batch", active: false, c: YL }, { flag: "Export Market", active: b.id === "BN-2025-005", c: GR }].map((f, i) => <div key={i} style={{ padding: "6px 12px", borderRadius: 20, background: f.active ? `${f.c}15` : G50, border: `1px solid ${f.active ? f.c : G200}`, color: f.active ? f.c : G400, fontSize: 11, fontWeight: f.active ? 600 : 400 }}>{f.active ? "●" : "○"} {f.flag}</div>)}
+
+      {/* 10 Execution Steps - Accordion */}
+      <Cd style={{ marginBottom: 12, padding: 0 }}>
+        <div style={{ padding: "12px 16px 8px", fontSize: 12, fontWeight: 600, color: C.t1 }}>Step-by-Step Execution Log</div>
+        {EXEC_STEPS_10.map(es => {
+          const open = expandedStep === es.step;
+          const isDone = es.status === "Completed";
+          const isCur = es.status === "In Progress";
+          return (
+            <div key={es.step} style={{ borderBottom: `1px solid ${C.borL}` }}>
+              <div
+                onClick={() => setExpandedStep(open ? null : es.step)}
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", cursor: "pointer", background: isCur ? `${C.pri}06` : "transparent" }}
+              >
+                <div style={{
+                  width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
+                  background: isDone ? C.gr : isCur ? C.pri : C.borL,
+                  color: (isDone || isCur) ? "#fff" : C.t4,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 10, fontWeight: 700,
+                }}>{isDone ? "✓" : es.step}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: C.t1 }}>{es.name}</div>
+                  <div style={{ fontSize: 10, color: C.t3 }}>{es.equip} | {es.area}</div>
+                </div>
+                <Badge s={es.status} />
+                <span style={{ fontSize: 12, color: C.t4, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▾</span>
+              </div>
+              {open && (
+                <div style={{ padding: "0 16px 12px 48px" }}>
+                  <div style={{ fontSize: 11, color: C.t3, marginBottom: 6 }}>
+                    SOP: <span style={{ color: C.bl, textDecoration: "underline" }}>{es.sop}</span>
+                    {es.signedBy !== "-" && <> | Executed: <b>{es.signedBy}</b> | Verified: <b>{es.verifiedBy}</b> | {es.time}</>}
+                  </div>
+                  <div style={{ fontSize: 10, color: C.t3, marginBottom: 8, fontStyle: "italic" }}>{es.notes}</div>
+                  {es.params.length > 0 && (
+                    <div style={{ background: C.borL, borderRadius: 6, padding: 8 }}>
+                      <div style={{ fontSize: 9, fontWeight: 600, color: C.t3, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>CPP / IPC Parameters</div>
+                      {es.params.map((pr, pi) => (
+                        <div key={pi} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "3px 0", borderBottom: pi < es.params.length - 1 ? `1px solid ${C.bor}` : "none" }}>
+                          <span style={{ fontSize: 11, color: C.t2 }}>{pr.p}</span>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ fontSize: 11, fontWeight: 600, fontFamily: "monospace", color: C.t1 }}>{pr.v}</span>
+                            <Badge s={pr.s} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </Cd>
+
+      {/* Yield & Hold Time Cards */}
+      <Grid cols="repeat(auto-fit, minmax(200px, 1fr))" gap={10}>
+        <Cd accent={C.gr}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: C.t1, marginBottom: 6 }}>Yield Reconciliation</div>
+          <div style={{ fontSize: 26, fontWeight: 700, color: parseFloat(b.yield) >= 98 ? C.gr : C.or }}>{b.yield || "Pending"}</div>
+          <div style={{ fontSize: 10, color: C.t4 }}>Acceptance: 95.0% - 101.0%</div>
+          <div style={{ marginTop: 6, display: "flex", gap: 4, flexWrap: "wrap" }}>
+            {[{ l: "Comp. Yield", v: "98.01%" }, { l: "Coat. Yield", v: "TBD" }, { l: "Insp. Yield", v: "TBD" }].map((y, i) => (
+              <span key={i} style={{ padding: "2px 8px", background: C.borL, borderRadius: 4, fontSize: 10, color: C.t3 }}>{y.l}: <b>{y.v}</b></span>
+            ))}
           </div>
-          <div style={{ marginTop: 8, fontSize: 10, color: G400 }}>Flags govern sampling plan, documentation requirements, and release workflow</div>
         </Cd>
-        <Cd style={{ borderLeft: `4px solid ${RD}` }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: DK, marginBottom: 8 }}>Exception Overrides (PRD 9.2)</div>
-          <div style={{ fontSize: 11, color: G500, marginBottom: 6 }}>All overrides logged with reason + e-sign + audit trail</div>
-          {[{ step: "Step 6: Drying (FBD)", reason: "LOD borderline 2.48% (limit 2.5%), QA assessed acceptable per CPV trend", by: "QA_Reviewer", time: "12:05" }].map((o, i) => <div key={i} style={{ padding: "8px 10px", background: `${YL}08`, borderRadius: 6, border: `1px solid ${YL}30`, fontSize: 11 }}><div><b>Override at:</b> {o.step}</div><div><b>Reason:</b> {o.reason}</div><div style={{ color: G400 }}>Authorized by: {o.by} | {o.time} | Audit: AUD-10246</div></div>)}
+        <Cd accent={C.bl}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: C.t1, marginBottom: 6 }}>Hold Time Tracking</div>
+          {[{ l: "CHT (Granulation→Drying)", v: "2h 15m", lim: "4h", ok: true }, { l: "DHT (Drying→Blending)", v: "45m", lim: "48h", ok: true }, { l: "Material Hold", v: "52h", lim: "72h", ok: true }].map((h, i) => (
+            <div key={i} style={{ padding: "4px 8px", background: h.ok ? C.grL : C.rdL, borderRadius: 4, border: `1px solid ${h.ok ? C.gr : C.rd}20`, marginBottom: 3 }}>
+              <div style={{ fontSize: 9, color: C.t3 }}>{h.l}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: h.ok ? C.gr : C.rd }}>{h.v} <span style={{ fontSize: 9, fontWeight: 400, color: C.t4 }}>/ {h.lim}</span></div>
+            </div>
+          ))}
         </Cd>
-      </div>
-    </div>}
-  </div>;
+        <Cd accent={C.pu}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: C.t1, marginBottom: 6 }}>Shelf Life</div>
+          <div style={{ fontSize: 11 }}>
+            {[{ l: "Shelf Life", v: "3 years" }, { l: "Mfg Date", v: b.mfgDate }, { l: "Exp Date", v: b.expDate }, { l: "MFR Version", v: b.mfr }].map((r, i) => (
+              <div key={i} style={{ padding: "3px 0", borderBottom: `1px solid ${C.borL}`, display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: C.t3 }}>{r.l}</span>
+                <span style={{ fontWeight: 600, color: C.t1, fontSize: 11 }}>{r.v}</span>
+              </div>
+            ))}
+          </div>
+        </Cd>
+      </Grid>
+    </div>
+  );
 };
 
-// 4. MATERIALS (NEW - PRD 5.3, TER-2.2.8-2.2.13)
+// ══════════════════════════════════════════════════════════
+// ── TAB: MASTER TEMPLATES ─────────────────────────────────
+// ══════════════════════════════════════════════════════════
+
+const TemplatesTab = () => {
+  const [sel, setSel] = useState(null);
+  const t = TEMPLATES.find(x => x.id === sel);
+  return (
+    <div>
+      <Sec sub="MFR/BMR/MPR/BPR version control | DXLPR has evolved through 8+ template revisions since 2019">Master Data & Templates</Sec>
+      {!sel ? <>
+        <Grid cols="repeat(auto-fit, minmax(100px, 1fr))" gap={8} style={{ marginBottom: 14 }}>
+          <Cd accent={C.gr} style={{ textAlign: "center", padding: 10 }}><div style={{ fontSize: 18, fontWeight: 700, color: C.gr }}>{TEMPLATES.filter(t => t.status === "Approved").length}</div><div style={{ fontSize: 10, color: C.t3 }}>Approved</div></Cd>
+          <Cd accent={C.yl} style={{ textAlign: "center", padding: 10 }}><div style={{ fontSize: 18, fontWeight: 700, color: C.yl }}>{TEMPLATES.filter(t => t.status === "Under Review").length}</div><div style={{ fontSize: 10, color: C.t3 }}>Under Review</div></Cd>
+          <Cd accent={C.t4} style={{ textAlign: "center", padding: 10 }}><div style={{ fontSize: 18, fontWeight: 700, color: C.t4 }}>{TEMPLATES.filter(t => t.status === "Obsoleted").length}</div><div style={{ fontSize: 10, color: C.t3 }}>Obsoleted</div></Cd>
+          <Cd accent={C.bl} style={{ textAlign: "center", padding: 10 }}><div style={{ fontSize: 18, fontWeight: 700, color: C.bl }}>{TEMPLATES.length}</div><div style={{ fontSize: 10, color: C.t3 }}>Total</div></Cd>
+        </Grid>
+        <Tbl cols={[
+          { l: "Template ID", r: r => <span style={{ fontWeight: 600, color: C.pri, fontSize: 11 }}>{r.id}</span> },
+          { l: "Type", k: "type" },
+          { l: "Version", r: r => <span style={{ fontFamily: "monospace", fontWeight: 600, fontSize: 11 }}>{r.version}</span> },
+          { l: "Status", r: r => <Badge s={r.status} /> },
+          { l: "Stages", k: "stages" },
+          { l: "Effective", k: "effectiveDate" },
+        ]} data={TEMPLATES} onRow={r => setSel(r.id)} />
+        <Cd style={{ marginTop: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: C.t1, marginBottom: 8 }}>Template Evolution Timeline (DXLPR)</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
+            {TEMPLATES.filter(t => t.type === "MFR").map((t, i, arr) => (
+              <div key={t.id} style={{ display: "flex", alignItems: "center" }}>
+                <div style={{ padding: "4px 10px", borderRadius: 16, background: t.status === "Approved" ? C.priL : t.status === "Under Review" ? C.ylL : C.borL, color: t.status === "Approved" ? C.pri : t.status === "Under Review" ? C.yl : C.t4, fontSize: 10, fontWeight: 600, border: `1px solid ${t.status === "Approved" ? C.pri : C.bor}30` }}>
+                  {t.version}
+                </div>
+                {i < arr.length - 1 && <span style={{ margin: "0 2px", color: C.t4, fontSize: 10 }}>→</span>}
+              </div>
+            ))}
+          </div>
+        </Cd>
+      </> : <>
+        <BackBtn onClick={() => setSel(null)} label="Back to Templates" />
+        <Cd style={{ marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+            <div><div style={{ fontSize: 16, fontWeight: 700, color: C.t1 }}>{t.id}</div><div style={{ fontSize: 12, color: C.t3 }}>{t.product} | {t.type} | {t.version}</div></div>
+            <Badge s={t.status} sz="md" />
+          </div>
+        </Cd>
+        <Grid cols="repeat(auto-fit, minmax(200px, 1fr))" gap={10}>
+          <Cd>
+            <div style={{ fontSize: 11, fontWeight: 600, color: C.t1, marginBottom: 6 }}>Revision Reason</div>
+            <div style={{ fontSize: 12, color: C.t2, lineHeight: 1.5 }}>{t.revisionReason}</div>
+            <div style={{ fontSize: 10, color: C.t4, marginTop: 6 }}>Previous: {t.prevVersion || "None"}</div>
+          </Cd>
+          <Cd>
+            <div style={{ fontSize: 11, fontWeight: 600, color: C.t1, marginBottom: 6 }}>10-Stage Template</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+              {STAGES_10.map(s => <span key={s.id} style={{ padding: "2px 6px", background: C.borL, borderRadius: 4, fontSize: 9, color: C.t3 }}>{s.icon} {s.short}</span>)}
+            </div>
+          </Cd>
+          <Cd>
+            <div style={{ fontSize: 11, fontWeight: 600, color: C.t1, marginBottom: 6 }}>Linked Batches</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: C.pri }}>{BATCHES.filter(b => b.mfr === t.id || b.bmr === t.id).length}</div>
+            <div style={{ fontSize: 10, color: C.t4 }}>batches executed on this template</div>
+          </Cd>
+        </Grid>
+      </>}
+    </div>
+  );
+};
+
+// ══════════════════════════════════════════════════════════
+// ── TAB: MATERIALS ────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+
 const MaterialsTab = () => (
   <div>
-    <Sec sub="Material dispensing, BOM validation, consumption & reconciliation per PRD 5.3, TER-2.2.8-2.2.13">Materials Management</Sec>
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, marginBottom: 16 }}>
+    <Sec sub="BOM, dispensing & AR number traceability | 1 API + 9 excipients per DXLPR batch">Materials Management</Sec>
+    <Grid cols="repeat(auto-fit, minmax(100px, 1fr))" gap={8} style={{ marginBottom: 14 }}>
       {[
-        { l: "Materials Dispensed", v: BOM_DATA.filter(b=>b.status!=="Pending").length, c: GR },
-        { l: "Pending Dispensing", v: BOM_DATA.filter(b=>b.status==="Pending").length, c: YL },
-        { l: "BOM Items (BN-2025-001)", v: BOM_DATA.length, c: BL },
-        { l: "Hold Time Alerts", v: 0, c: GR },
-        { l: "Material Returns", v: 0, c: G500 },
-      ].map((k, i) => <Cd key={i} style={{ textAlign: "center", borderTop: `3px solid ${k.c}` }}><div style={{ fontSize: 20, fontWeight: 700, color: k.c }}>{k.v}</div><div style={{ fontSize: 10, color: G500 }}>{k.l}</div></Cd>)}
-    </div>
-    <Cd style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 14, fontWeight: 600, color: DK, marginBottom: 4 }}>BOM for BN-2025-001: Metformin HCl 500mg (Fetched from SAP — TER-2.2.17)</div>
-      <div style={{ fontSize: 11, color: G500, marginBottom: 10 }}>MTS Integration: Auto-fetched material list per TER-2.2.8 | BOM validated against SAP per TER-2.2.11</div>
-      <Tbl cols={[
-        { l: "Material", r: r => <div><div style={{ fontWeight: 500 }}>{r.material}</div><div style={{ fontSize: 10, color: G400 }}>SAP: {r.sapCode} | Code: {r.code}</div></div> },
-        { l: "Required", r: r => <b>{r.required}</b> },
-        { l: "Dispensed", r: r => <span style={{ color: r.dispensed !== "-" ? GR : G400 }}>{r.dispensed}</span> },
-        { l: "AR No.", r: r => <span style={{ fontFamily: "monospace", fontSize: 11 }}>{r.arNo}</span> },
-        { l: "Lot / Batch", r: r => <span style={{ fontSize: 11 }}>{r.lot}</span> },
-        { l: "Container", k: "container" },
-        { l: "Hold Expiry", r: r => { const exp = r.holdExpiry; if (exp === "-") return "-"; const isNear = new Date(exp) < new Date("2025-02-09"); return <span style={{ color: isNear ? YL : GR, fontWeight: 500, fontSize: 11 }}>{exp}</span>; }},
-        { l: "Status", r: r => <Badge s={r.status} /> },
-      ]} data={BOM_DATA} />
-    </Cd>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-      <Cd>
-        <div style={{ fontSize: 13, fontWeight: 600, color: DK, marginBottom: 8 }}>Material Verification Flow (TER-2.2.9, TER-2.2.66)</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {["1. Scan container barcode (2D/RFID)", "2. System validates against BOM from SAP", "3. Cross-batch material prevention check", "4. Verify AR No., Lot, Expiry from MTS", "5. Capture dispensed weight from connected balance", "6. Auto-calculate tare/net/gross (TER-2.2.61)", "7. E-signature by dispenser + verifier", "8. Generate dispensing label with 2D barcode"].map((s, i) => <div key={i} style={{ padding: "6px 10px", background: i < 6 ? `${GR}08` : G50, borderRadius: 6, fontSize: 11, color: G700, display: "flex", alignItems: "center", gap: 6 }}><span style={{ color: i < 6 ? GR : O, fontWeight: 700 }}>{i < 6 ? "✓" : "○"}</span>{s}</div>)}
-        </div>
-      </Cd>
-      <Cd>
-        <div style={{ fontSize: 13, fontWeight: 600, color: DK, marginBottom: 8 }}>Material Hold Time Tracking (TER-2.2.13)</div>
-        <div style={{ fontSize: 11, marginBottom: 10, color: G500 }}>Auto-calculated from dispensing timestamp; blocks use if exceeded without QA approval</div>
-        {BOM_DATA.filter(b => b.holdTime !== "-" && b.dispensed !== "-").map((m, i) => <div key={i} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${GR}30`, background: `${GR}05`, marginBottom: 6 }}><div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontSize: 11, fontWeight: 500 }}>{m.material}</span><span style={{ fontSize: 11, color: GR }}>{m.holdTime} limit</span></div><div style={{ fontSize: 10, color: G400 }}>Dispensed: {m.dispensedAt} | Expires: {m.holdExpiry}</div></div>)}
-      </Cd>
-    </div>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginTop: 14 }}>
-      <Cd>
-        <div style={{ fontSize: 13, fontWeight: 600, color: DK, marginBottom: 8 }}>Consumption & Reconciliation (PRD 5.3)</div>
-        {[{ l: "Total Issued", v: "500.27 kg" }, { l: "Consumed (in-process)", v: "487.65 kg" }, { l: "Samples Drawn", v: "0.35 kg" }, { l: "Scrap / Reject", v: "1.82 kg" }, { l: "Returns to Store", v: "10.45 kg" }].map((r, i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px solid ${G100}`, fontSize: 12 }}><span style={{ color: G500 }}>{r.l}</span><b style={{ color: G700 }}>{r.v}</b></div>)}
-        <div style={{ marginTop: 8, padding: "8px 10px", background: `${GR}08`, borderRadius: 6, border: `1px solid ${GR}30` }}><div style={{ fontSize: 11, color: GR, fontWeight: 600 }}>Reconciliation: 99.4% (Tolerance: 95-101%)</div><div style={{ fontSize: 10, color: G400 }}>Auto-calculated; deviation enforced when OOL</div></div>
-      </Cd>
-      <Cd>
-        <div style={{ fontSize: 13, fontWeight: 600, color: DK, marginBottom: 8 }}>Quarantine Issuance (TER-2.2.41)</div>
-        <div style={{ fontSize: 11, color: G500, marginBottom: 8 }}>Issuance of blend/tablets/capsules from quarantine through MES with QA approval</div>
-        {[{ mat: "Metformin Blend (Lubricated)", qty: "490 kg", rack: "QR-A-03", status: "In Quarantine", batch: "BN-2025-001" }, { mat: "Omeprazole Coated Tabs", qty: "342 kg", rack: "QR-B-01", status: "Released", batch: "BN-2024-198" }].map((q, i) => <div key={i} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${i === 0 ? YL : GR}30`, background: `${i === 0 ? YL : GR}05`, marginBottom: 6 }}><div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontSize: 11, fontWeight: 500 }}>{q.mat}</span><Badge s={q.status} /></div><div style={{ fontSize: 10, color: G400 }}>Batch: {q.batch} | Rack: {q.rack} | Qty: {q.qty}</div></div>)}
-      </Cd>
-      <Cd>
-        <div style={{ fontSize: 13, fontWeight: 600, color: DK, marginBottom: 8 }}>Transfer Notes (TER-2.2.29-30)</div>
-        {[{ type: "SFG Transfer (TER-2.2.29)", doc: "SFG-BN2025001-COMP", from: "Compression Suite", to: "Coating Room", qty: "487 kg", status: "Generated" }, { type: "FG Transfer (TER-2.2.30)", doc: "FG-BN2024198-PACK", from: "Packing Line", to: "FG Store", qty: "342 kg", status: "SAP Confirmed" }].map((t, i) => <div key={i} style={{ padding: "8px 10px", borderRadius: 6, background: G50, border: `1px solid ${G200}`, marginBottom: 6 }}><div style={{ fontSize: 11, fontWeight: 600, color: DK }}>{t.type}</div><div style={{ fontSize: 10, color: G500 }}>Doc: {t.doc} | {t.from} → {t.to} | {t.qty}</div><Badge s={t.status} /></div>)}
-        <div style={{ fontSize: 10, color: G400, marginTop: 6 }}>FG traceability: inward/outward from store tracked via SAP integration</div>
-      </Cd>
-    </div>
+        { l: "Dispensed", v: BOM_DATA.filter(b => b.status === "Verified").length, c: C.gr },
+        { l: "Pending", v: BOM_DATA.filter(b => b.status === "Pending").length, c: C.yl },
+        { l: "BOM Items", v: BOM_DATA.length, c: C.bl },
+      ].map((k, i) => <Cd key={i} accent={k.c} style={{ textAlign: "center", padding: 10 }}><div style={{ fontSize: 18, fontWeight: 700, color: k.c }}>{k.v}</div><div style={{ fontSize: 10, color: C.t3 }}>{k.l}</div></Cd>)}
+    </Grid>
+    <div style={{ fontSize: 12, fontWeight: 600, color: C.t1, marginBottom: 8 }}>BOM for DXLPR0185: Dexlansoprazole DR 60mg | Batch Size: 45.0L</div>
+    <Tbl cols={[
+      { l: "Material", r: r => <div><div style={{ fontWeight: 500, fontSize: 11 }}>{r.material}</div><div style={{ fontSize: 9, color: C.t4 }}>{r.code}</div></div> },
+      { l: "AR No.", r: r => <span style={{ fontFamily: "monospace", fontSize: 10 }}>{r.arNo}</span> },
+      { l: "Required", k: "required" },
+      { l: "Dispensed", r: r => <span style={{ fontWeight: 600 }}>{r.dispensed}</span> },
+      { l: "Lot", r: r => <span style={{ fontSize: 10, fontFamily: "monospace" }}>{r.lot}</span> },
+      { l: "Hold Time", k: "holdTime" },
+      { l: "Status", r: r => <Badge s={r.status} /> },
+    ]} data={BOM_DATA} />
   </div>
 );
 
-// 5. EQUIPMENT (ENHANCED - calibration workflow, balances)
-const EquipmentTab = () => {
-  const [view, setView] = useState("equipment");
-  return <div>
-    <Sec sub="Equipment + instrument + balance management per PRD 5.4, TER-2.2.1-2.2.7, TER-2.2.42-2.2.56">Equipment & Instruments</Sec>
-    <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-      {[{ k: "equipment", l: "Equipment (Annexure-I)" }, { k: "balances", l: "Balances (TER-2.2.1-2.2.7)" }, { k: "calibration", l: "Calibration Workflow" }].map(t => <button key={t.k} onClick={() => setView(t.k)} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${view === t.k ? O : G300}`, background: view === t.k ? `${O}10` : "#fff", color: view === t.k ? O : G500, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>{t.l}</button>)}
-    </div>
-    {view === "equipment" && <>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 16 }}>
-        {[{ l: "Total", v: EQUIP.length, i: "🔧" }, { l: "Running", v: EQUIP.filter(e=>e.status==="Running").length, i: "✅" }, { l: "Calib Due (7d)", v: 3, i: "📅" }, { l: "Needs Cleaning", v: EQUIP.filter(e=>e.clean==="Dirty").length, i: "🧹" }].map((k, i) => <Cd key={i} style={{ textAlign: "center", padding: 14 }}><div style={{ fontSize: 20 }}>{k.i}</div><div style={{ fontSize: 22, fontWeight: 700, color: DK }}>{k.v}</div><div style={{ fontSize: 11, color: G500 }}>{k.l}</div></Cd>)}
-      </div>
-      <Tbl cols={[
-        { l: "Code", r: r => <span style={{ fontWeight: 600, fontFamily: "monospace" }}>{r.id}</span> },
-        { l: "Equipment", k: "name" },
-        { l: "Make", k: "make", r: r => <span style={{ fontSize: 12 }}>{r.make}</span> },
-        { l: "Area", k: "area" },
-        { l: "Status", r: r => <Badge s={r.status} /> },
-        { l: "Calib Due", r: r => <span style={{ color: new Date(r.calibDue) < new Date("2025-03-01") ? RD : G700, fontWeight: new Date(r.calibDue) < new Date("2025-03-01") ? 600 : 400 }}>{r.calibDue}</span> },
-        { l: "PPM Due", k: "ppmDue" },
-        { l: "Qualification", r: r => <Badge s={r.qualStatus} /> },
-        { l: "Clean", r: r => <Badge s={r.clean} /> },
-        { l: "CHT/DHT", r: r => <span style={{ fontSize: 11 }}>{r.cht}/{r.dht}</span> },
-      ]} data={EQUIP} />
-    </>}
-    {view === "balances" && <>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 16 }}>
-        {[{ l: "Total Balances", v: BALANCES.length, c: BL }, { l: "Connected", v: BALANCES.filter(b=>b.status==="Connected").length, c: GR }, { l: "Daily Check Passed", v: BALANCES.filter(b=>b.dailyCheck==="Pass").length, c: GR }, { l: "Failed / Pending", v: BALANCES.filter(b=>b.dailyCheck!=="Pass").length, c: RD }].map((k, i) => <Cd key={i} style={{ textAlign: "center", borderTop: `3px solid ${k.c}` }}><div style={{ fontSize: 22, fontWeight: 700, color: k.c }}>{k.v}</div><div style={{ fontSize: 10, color: G500 }}>{k.l}</div></Cd>)}
-      </div>
-      <Tbl cols={[
-        { l: "Balance ID", r: r => <span style={{ fontWeight: 600, fontFamily: "monospace" }}>{r.id}</span> },
-        { l: "Model", k: "name" },
-        { l: "Location", k: "location" },
-        { l: "Capacity / LC", r: r => <span style={{ fontSize: 11 }}>{r.capacity} / {r.lc}</span> },
-        { l: "Connection", r: r => <Badge s={r.status} /> },
-        { l: "Last Calibration", k: "lastCalib" },
-        { l: "Next Calibration", r: r => <span style={{ color: new Date(r.nextCalib) < new Date("2025-02-28") ? RD : G700 }}>{r.nextCalib}</span> },
-        { l: "Daily Check", r: r => <Badge s={r.dailyCheck} /> },
-        { l: "Check Time", k: "checkTime" },
-        { l: "Last Reading", r: r => <span style={{ fontFamily: "monospace", fontSize: 11 }}>{r.lastWeight}</span> },
-      ]} data={BALANCES} />
-      <div style={{ marginTop: 10, padding: 10, background: `${RD}08`, borderRadius: 8, border: `1px solid ${RD}30`, fontSize: 12, color: RD }}>
-        ⚠ BAL-04: Daily verification FAILED — Balance BLOCKED from use until recalibrated and QA approved (TER-2.2.5, TER-2.2.6). BAL-05: Disconnected — Cannot capture data (TER-2.2.44).
-      </div>
-    </>}
-    {view === "calibration" && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-      <Cd>
-        <div style={{ fontSize: 14, fontWeight: 600, color: DK, marginBottom: 10 }}>Calibration Workflow (TER-2.2.4)</div>
-        {["1. System creates calibration recipe per site requirement", "2. Notifies user when calibration is due (TER-2.2.5)", "3. User performs daily check/verification (TER-2.2.3)", "4. Data entered manually or auto-fetched from balance", "5. If FAIL: Block instrument (TER-2.2.6), notify QA", "6. Trigger recalibration with QA justification & approval", "7. On PASS: Update calibration record, set next due date", "8. No limit on number of connected balances (TER-2.2.7)"].map((s, i) => <div key={i} style={{ padding: "8px 10px", background: G50, borderRadius: 6, fontSize: 12, color: G700, marginBottom: 4, borderLeft: `3px solid ${i === 4 || i === 5 ? RD : O}` }}>{s}</div>)}
-      </Cd>
-      <Cd>
-        <div style={{ fontSize: 14, fontWeight: 600, color: DK, marginBottom: 10 }}>Upcoming Calibrations (Next 30 Days)</div>
-        {[...EQUIP.filter(e => new Date(e.calibDue) < new Date("2025-03-10")), ...BALANCES.filter(b => new Date(b.nextCalib) < new Date("2025-03-10"))].map((item, i) => <div key={i} style={{ padding: "8px 10px", borderRadius: 6, border: `1px solid ${YL}30`, background: `${YL}05`, marginBottom: 6 }}><div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontWeight: 500, fontSize: 12 }}>{item.id} — {item.name}</span><span style={{ fontSize: 11, color: RD, fontWeight: 600 }}>{item.calibDue || item.nextCalib}</span></div></div>)}
-      </Cd>
-    </div>}
-  </div>;
-};
+// ══════════════════════════════════════════════════════════
+// ── TAB: EQUIPMENT ────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
 
-// 6. IPC & CONTROLS (NEW - PRD 5.5, TER-2.2.63-2.2.64)
+const EquipmentTab = () => (
+  <div>
+    <Sec sub="Equipment status mapped to 10-stage flow | 15 equipment items across 7 production areas">Equipment & Instruments</Sec>
+    <Grid cols="repeat(auto-fit, minmax(100px, 1fr))" gap={8} style={{ marginBottom: 14 }}>
+      {[
+        { l: "Total", v: EQUIP.length, c: C.bl, i: "🔧" },
+        { l: "Running", v: EQUIP.filter(e => e.status === "Running").length, c: C.gr, i: "✅" },
+        { l: "Needs Cleaning", v: EQUIP.filter(e => e.clean === "Dirty").length, c: C.rd, i: "🧹" },
+        { l: "Qual Due", v: EQUIP.filter(e => e.qualStatus === "Due").length, c: C.yl, i: "📅" },
+      ].map((k, i) => <Cd key={i} style={{ textAlign: "center", padding: 10 }}><div style={{ fontSize: 14 }}>{k.i}</div><div style={{ fontSize: 18, fontWeight: 700, color: k.c }}>{k.v}</div><div style={{ fontSize: 9, color: C.t3 }}>{k.l}</div></Cd>)}
+    </Grid>
+    <Tbl cols={[
+      { l: "ID", r: r => <span style={{ fontWeight: 600, fontFamily: "monospace", fontSize: 11 }}>{r.id}</span> },
+      { l: "Equipment", r: r => <span style={{ fontSize: 11 }}>{r.name}</span> },
+      { l: "Area", r: r => <span style={{ fontSize: 10 }}>{r.area}</span> },
+      { l: "Status", r: r => <Badge s={r.status} /> },
+      { l: "Calib Due", r: r => <span style={{ color: new Date(r.calibDue) < new Date("2025-03-01") ? C.rd : C.t2, fontWeight: new Date(r.calibDue) < new Date("2025-03-01") ? 600 : 400, fontSize: 11 }}>{r.calibDue}</span> },
+      { l: "Qual", r: r => <Badge s={r.qualStatus} /> },
+      { l: "Clean", r: r => <Badge s={r.clean} /> },
+    ]} data={EQUIP} />
+    <Cd style={{ marginTop: 12 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: C.t1, marginBottom: 8 }}>Equipment to Stage Mapping</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {STAGES_10.map(s => (
+          <div key={s.id} style={{ padding: "6px 10px", background: C.borL, borderRadius: 6, fontSize: 10, minWidth: 80 }}>
+            <div style={{ fontWeight: 600, color: C.t1, marginBottom: 2 }}>{s.icon} {s.name}</div>
+            <div style={{ color: C.t3, fontFamily: "monospace", fontSize: 9 }}>{s.equip.join(", ")}</div>
+          </div>
+        ))}
+      </div>
+    </Cd>
+  </div>
+);
+
+// ══════════════════════════════════════════════════════════
+// ── TAB: IPC & CONTROLS ──────────────────────────────────
+// ══════════════════════════════════════════════════════════
+
 const IPCTab = () => (
   <div>
-    <Sec sub="In-process checks & process controls per PRD 5.5, TER-2.2.57, TER-2.2.63-2.2.64">IPC & Process Controls</Sec>
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 16 }}>
-      {[{ l: "Total Checks", v: IPC_DATA.length, c: BL }, { l: "Passed", v: IPC_DATA.filter(i=>i.status==="Pass").length, c: GR }, { l: "Alerts (OOL)", v: IPC_DATA.filter(i=>i.status==="Alert").length, c: O }, { l: "Failed", v: IPC_DATA.filter(i=>i.status==="Fail").length, c: RD }].map((k, i) => <Cd key={i} style={{ textAlign: "center", borderTop: `3px solid ${k.c}` }}><div style={{ fontSize: 22, fontWeight: 700, color: k.c }}>{k.v}</div><div style={{ fontSize: 10, color: G500 }}>{k.l}</div></Cd>)}
-    </div>
+    <Sec sub="In-process checks across 10 stages | CPP monitoring with auto-alert on OOL">IPC & Process Controls</Sec>
+    <Grid cols="repeat(auto-fit, minmax(100px, 1fr))" gap={8} style={{ marginBottom: 14 }}>
+      {[
+        { l: "Total Checks", v: IPC_DATA.length, c: C.bl },
+        { l: "Passed", v: IPC_DATA.filter(i => i.status === "Pass").length, c: C.gr },
+        { l: "Alerts (OOL)", v: IPC_DATA.filter(i => i.status === "Alert").length, c: C.or },
+      ].map((k, i) => <Cd key={i} accent={k.c} style={{ textAlign: "center", padding: 10 }}><div style={{ fontSize: 18, fontWeight: 700, color: k.c }}>{k.v}</div><div style={{ fontSize: 10, color: C.t3 }}>{k.l}</div></Cd>)}
+    </Grid>
     <Tbl cols={[
-      { l: "IPC ID", r: r => <span style={{ fontFamily: "monospace", fontWeight: 600 }}>{r.id}</span> },
+      { l: "ID", r: r => <span style={{ fontFamily: "monospace", fontWeight: 600, fontSize: 10 }}>{r.id}</span> },
       { l: "Batch", k: "batch" },
       { l: "Stage", k: "stage" },
-      { l: "Check Parameter", r: r => <span style={{ fontWeight: 500 }}>{r.check}</span> },
-      { l: "Acceptance Limit", r: r => <span style={{ fontSize: 11, fontFamily: "monospace" }}>{r.limit}</span> },
-      { l: "Result", r: r => <span style={{ fontWeight: 600, color: r.status === "Pass" ? GR : r.status === "Alert" ? O : RD }}>{r.result}</span> },
+      { l: "Parameter", r: r => <span style={{ fontWeight: 500, fontSize: 11 }}>{r.check}</span> },
+      { l: "Limit", r: r => <span style={{ fontSize: 10, fontFamily: "monospace" }}>{r.limit}</span> },
+      { l: "Result", r: r => <span style={{ fontWeight: 600, color: r.status === "Pass" ? C.gr : C.or, fontFamily: "monospace" }}>{r.result}</span> },
       { l: "Status", r: r => <Badge s={r.status} /> },
-      { l: "Equipment", k: "equipment" },
-      { l: "Frequency", k: "frequency" },
-      { l: "Time", r: r => <span style={{ fontSize: 11, fontFamily: "monospace" }}>{r.time}</span> },
     ]} data={IPC_DATA} />
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 16 }}>
-      <Cd>
-        <div style={{ fontSize: 13, fontWeight: 600, color: DK, marginBottom: 8 }}>Process Control Rules (PRD 5.5)</div>
-        {[
-          { rule: "If IPC result outside acceptance limit", action: "Auto-trigger QA notification (TER-2.2.64)", icon: "🔴" },
-          { rule: "If critical parameter fails", action: '"Do not proceed" block until QA override', icon: "🚫" },
-          { rule: "Line clearance check incomplete", action: "Stage blocked; deviation auto-initiated (TER-2.2.57)", icon: "⛔" },
-          { rule: "Periodic check overdue", action: "System prompts operator; notification to supervisor", icon: "⏰" },
-          { rule: "QA override provided", action: "Logged with reason + e-signature in audit trail", icon: "📝" },
-        ].map((r, i) => <div key={i} style={{ padding: "8px 10px", background: G50, borderRadius: 6, marginBottom: 6, fontSize: 11 }}><div style={{ display: "flex", alignItems: "center", gap: 6 }}><span>{r.icon}</span><b style={{ color: G700 }}>{r.rule}</b></div><div style={{ color: G500, marginTop: 2, marginLeft: 22 }}>→ {r.action}</div></div>)}
+    {IPC_DATA.some(i => i.status === "Alert") && (
+      <Cd style={{ marginTop: 10, borderLeft: `4px solid ${C.or}` }}>
+        <div style={{ fontSize: 11, color: C.or, fontWeight: 600 }}>Alert: DXLPR0186 Coating Weight Gain at 3.7% (limit 3.0% ± 0.5%)</div>
+        <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>DEV-2025-011 raised | QA notification triggered | Batch hold pending investigation</div>
       </Cd>
-      <Cd style={{ borderLeft: `4px solid ${O}` }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: O, marginBottom: 8 }}>⚠ Active Alert: IPC-007</div>
-        <div style={{ fontSize: 12, color: G700, lineHeight: 1.6 }}>
-          <b>Batch:</b> BN-2025-002 | <b>Stage:</b> Coating<br/>
-          <b>Check:</b> Weight Gain % | <b>Result:</b> 3.6% (Limit: 3.0% ± 0.5%)<br/>
-          <b>Action Required:</b> QA review and disposition. Processing blocked at current step until QA approval or deviation initiated.<br/>
-          <b>Notification sent to:</b> QA_Reviewer, Production Supervisor
-        </div>
-      </Cd>
-    </div>
+    )}
   </div>
 );
 
-// 7. SAMPLING & LABELS (NEW - PRD 5.6, TER-2.2.65-2.2.74)
-const SamplingTab = () => (
-  <div>
-    <Sec sub="Sampling plan, e-TRF, label generation per PRD 5.6, TER-2.2.65-2.2.74">Sampling & Labels</Sec>
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 16 }}>
-      {[{ l: "Samples Collected", v: SAMPLING_DATA.filter(s=>s.status==="Collected"||s.status==="Passed"||s.status==="Under Testing").length, c: GR }, { l: "Pending Collection", v: SAMPLING_DATA.filter(s=>s.status==="Pending").length, c: YL }, { l: "Under Testing", v: SAMPLING_DATA.filter(s=>s.status==="Under Testing").length, c: BL }, { l: "TRFs Generated", v: SAMPLING_DATA.filter(s=>s.trf!=="-").length, c: PU }].map((k, i) => <Cd key={i} style={{ textAlign: "center", borderTop: `3px solid ${k.c}` }}><div style={{ fontSize: 22, fontWeight: 700, color: k.c }}>{k.v}</div><div style={{ fontSize: 10, color: G500 }}>{k.l}</div></Cd>)}
-    </div>
-    <Tbl cols={[
-      { l: "Sample ID", r: r => <span style={{ fontFamily: "monospace", fontWeight: 600 }}>{r.id}</span> },
-      { l: "Batch", k: "batch" },
-      { l: "Stage", k: "stage" },
-      { l: "Test Type", r: r => <span style={{ fontWeight: 500 }}>{r.type}</span> },
-      { l: "Qty / Points", r: r => <span style={{ fontSize: 11 }}>{r.qty} | {r.samplePoints}</span> },
-      { l: "Status", r: r => <Badge s={r.status} /> },
-      { l: "e-TRF", r: r => r.trf !== "-" ? <span style={{ color: PU, fontFamily: "monospace", fontSize: 11 }}>{r.trf}</span> : <span style={{ color: G400 }}>-</span> },
-      { l: "LIMS Ref", r: r => r.limsRef !== "-" ? <span style={{ color: BL, fontSize: 11 }}>{r.limsRef}</span> : "-" },
-    ]} data={SAMPLING_DATA} />
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 16 }}>
-      <Cd>
-        <div style={{ fontSize: 14, fontWeight: 600, color: DK, marginBottom: 10 }}>Label Generation Preview (TER-2.2.65-2.2.67)</div>
-        <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-          <BarcodeLabel batch="BN-2025-001" container="CTN-001" material="Metformin HCl API" weight="250.12 kg" stage="Dispensing" />
-          <BarcodeLabel batch="BN-2025-001" container="IPC-BU-01" material="Blend Sample" weight="50 g" stage="Blending" />
-        </div>
-      </Cd>
-      <Cd>
-        <div style={{ fontSize: 14, fontWeight: 600, color: DK, marginBottom: 10 }}>Sampling Plan Config (TER-2.2.68-2.2.71)</div>
-        {[
-          "TER-2.2.68: Create sampling plan per commercial/validation batch",
-          "TER-2.2.69: Flag validation study challenges per protocol",
-          "TER-2.2.70: Auto-calculate sampled qty for reconciliation",
-          "TER-2.2.71: Recipe per process order / stability protocol / site frequency",
-          "TER-2.2.72: Generate sample labels + e-TRF per sampling plan",
-          "TER-2.2.73: e-TRF with batch/sample details and 2D barcode",
-          "TER-2.2.74: Miscellaneous TRF for validation samples",
-          "TER-2.2.28: AQL for tablets/capsules per site procedure",
-        ].map((f, i) => <div key={i} style={{ padding: "5px 8px", background: G50, borderRadius: 6, fontSize: 11, color: G600, marginBottom: 4, display: "flex", gap: 6 }}><span style={{ color: GR, fontWeight: 700, flexShrink: 0 }}>✓</span>{f}</div>)}
-      </Cd>
-    </div>
-  </div>
-);
+// ══════════════════════════════════════════════════════════
+// ── TAB: E-LOGBOOKS ──────────────────────────────────────
+// ══════════════════════════════════════════════════════════
 
-// 8. DEVIATIONS
-const DeviationTab = () => (
+const LogbooksTab = () => (
   <div>
-    <Sec sub="Deviation/discrepancy management per PRD 5.7, TER-2.2.14-2.2.15, TER-2.2.77-2.2.81">Deviations & Discrepancies</Sec>
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 16 }}>
-      {[{ l: "Open", v: DEVIATIONS.filter(d=>d.status==="Open").length, c: RD }, { l: "Under Investigation", v: DEVIATIONS.filter(d=>d.status==="Under Investigation").length, c: YL }, { l: "Closed", v: DEVIATIONS.filter(d=>d.status.includes("Closed")).length, c: GR }, { l: "Total YTD", v: DEVIATIONS.length, c: G500 }].map((k, i) => <Cd key={i} style={{ textAlign: "center", borderTop: `3px solid ${k.c}` }}><div style={{ fontSize: 24, fontWeight: 700, color: k.c }}>{k.v}</div><div style={{ fontSize: 10, color: G500 }}>{k.l}</div></Cd>)}
-    </div>
+    <Sec sub="Electronic logbooks per area/equipment | Auto-linked to batch execution steps">E-Logbooks</Sec>
     <Tbl cols={[
-      { l: "ID", r: r => <span style={{ fontWeight: 600, color: O }}>{r.id}</span> },
-      { l: "Batch", k: "batch" },
-      { l: "Type", k: "type" },
-      { l: "Category", r: r => <CatBadge c={r.cat} /> },
-      { l: "Stage", k: "stage" },
-      { l: "Description", r: r => <span style={{ fontSize: 12, maxWidth: 220, display: "inline-block" }}>{r.desc}</span> },
-      { l: "Status", r: r => <Badge s={r.status} /> },
-      { l: "Date", k: "date" },
-    ]} data={DEVIATIONS} />
-    <Cd style={{ marginTop: 14 }}>
-      <div style={{ fontSize: 14, fontWeight: 600, color: DK, marginBottom: 10 }}>Escalation Matrix (TER-2.2.26)</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
-        {[{ lv: "Info", ap: "Line Supervisor", sla: "24h", c: BL }, { lv: "Minor", ap: "Production Head", sla: "48h", c: YL }, { lv: "Major", ap: "QA Head + Prod Head", sla: "72h", c: O }, { lv: "Critical", ap: "Unit Head + CQA", sla: "Immediate", c: RD }].map((e, i) => <div key={i} style={{ padding: 12, borderRadius: 8, border: `1px solid ${e.c}30`, background: `${e.c}08` }}><div style={{ fontSize: 13, fontWeight: 700, color: e.c }}>{e.lv}</div><div style={{ fontSize: 11, color: G700 }}>Approver: {e.ap}</div><div style={{ fontSize: 11, color: G500 }}>SLA: {e.sla}</div></div>)}
-      </div>
-    </Cd>
-    <Cd style={{ marginTop: 14 }}>
-      <div style={{ fontSize: 14, fontWeight: 600, color: DK, marginBottom: 10 }}>Notification & Approval Workflow (TER-2.2.14-2.2.15, PRD 5.7)</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: G700, marginBottom: 8 }}>Auto-triggered Notifications</div>
-          {[{ ev: "Deviation initiated", to: "QA Reviewer, Production Head", via: "Email + In-app", status: "Sent" }, { ev: "Investigation overdue (SLA breach)", to: "QA Head, Unit Head", via: "Email + SMS", status: "Pending" }, { ev: "CAPA completed", to: "QA Reviewer", via: "In-app", status: "Sent" }, { ev: "Critical deviation raised", to: "Unit Head, CQA", via: "Email + SMS (Immediate)", status: "Sent" }].map((n, i) => <div key={i} style={{ padding: "6px 10px", borderRadius: 6, background: G50, border: `1px solid ${G200}`, marginBottom: 4, fontSize: 11 }}><div style={{ display: "flex", justifyContent: "space-between" }}><b style={{ color: G700 }}>{n.ev}</b><Badge s={n.status} /></div><div style={{ color: G400 }}>To: {n.to} | Via: {n.via}</div></div>)}
-        </div>
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: G700, marginBottom: 8 }}>Review/Approval Flow (linked to batch steps)</div>
-          {["1. Deviation initiated by Operator/Supervisor during execution", "2. System links deviation to affected batch step (TER-2.2.25)", "3. Auto-notify configured approvers per escalation matrix", "4. QA investigation with mandatory root cause entry", "5. CAPA assignment and completion tracking", "6. Closure with e-signature + QA approval (PRD 9.1)", "7. Full audit trail of all workflow transitions"].map((s, i) => <div key={i} style={{ padding: "4px 8px", fontSize: 11, color: G600, display: "flex", gap: 6 }}><span style={{ color: GR, fontWeight: 700 }}>✓</span>{s}</div>)}
-        </div>
-      </div>
-    </Cd>
-  </div>
-);
-
-// 9. E-LOGBOOKS
-const LogbookTab = () => (
-  <div>
-    <Sec sub="Electronic logbooks per PRD 5.8, TER-2.2.96-2.2.104">E-Logbooks & Checklists</Sec>
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 16 }}>
-      {[{ l: "Active Logbooks", v: LOGBOOKS.filter(l=>l.status==="Active").length, c: GR }, { l: "Entries Today", v: 47, c: BL }, { l: "Pending Checklists", v: 3, c: YL }].map((k, i) => <Cd key={i} style={{ borderLeft: `4px solid ${k.c}` }}><div style={{ fontSize: 22, fontWeight: 700, color: k.c }}>{k.v}</div><div style={{ fontSize: 12, color: G500 }}>{k.l}</div></Cd>)}
-    </div>
-    <Tbl cols={[
-      { l: "Log ID", r: r => <span style={{ fontWeight: 600, fontFamily: "monospace" }}>{r.id}</span> },
+      { l: "Log ID", r: r => <span style={{ fontWeight: 600, fontFamily: "monospace", fontSize: 11 }}>{r.id}</span> },
       { l: "Type", k: "type" },
       { l: "Equipment", k: "equip" },
       { l: "Area", k: "area" },
-      { l: "Entries", r: r => <b>{r.entries}</b> },
-      { l: "Last Entry", k: "last" },
+      { l: "Entries", r: r => <span style={{ fontWeight: 600 }}>{r.entries}</span> },
+      { l: "Last Entry", r: r => <span style={{ fontSize: 10, fontFamily: "monospace" }}>{r.last}</span> },
       { l: "Status", r: r => <Badge s={r.status} /> },
     ]} data={LOGBOOKS} />
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 14 }}>
-      <Cd>
-        <div style={{ fontSize: 13, fontWeight: 600, color: DK, marginBottom: 8 }}>E-Logbook Capabilities (TER-2.2.96-2.2.104)</div>
-        {["TER-2.2.96: Customizable templates for area/equipment/cleaning", "TER-2.2.97: Unique identifier per logbook with traceability", "TER-2.2.98: Unlimited templates/checklists/logbooks", "TER-2.2.99: Auto-trigger deviation if checkpoint fails", "TER-2.2.100: Track change parts, stereos, accessories", "TER-2.2.101: Status labels with 2D barcode/RFID", "TER-2.2.102: E-signature with name/ID, date, time; reprint requires approval", "TER-2.2.103: Filter/search by date, equipment, area, batch", "TER-2.2.104: Secure storage per retention policies"].map((f, i) => <div key={i} style={{ padding: "4px 8px", fontSize: 11, color: G600, display: "flex", gap: 6, marginBottom: 2 }}><span style={{ color: GR, fontWeight: 700, flexShrink: 0 }}>✓</span>{f}</div>)}
-      </Cd>
-      <Cd>
-        <div style={{ fontSize: 13, fontWeight: 600, color: DK, marginBottom: 8 }}>Recent Logbook Entries (with e-sign)</div>
-        {[{ log: "LOG-001", entry: "Equipment PR571 used for BN-2025-001 granulation", by: "Operator_A", verifier: "Supervisor_B", time: "09:10", esig: true }, { log: "LOG-002", entry: "Cleaning completed for PR726 Coating Machine", by: "Operator_C", verifier: "QA_Reviewer", time: "22:00", esig: true }, { log: "LOG-003", entry: "Area clearance: Compression Suite 1 line cleared", by: "Operator_B", verifier: "Supervisor_B", time: "08:45", esig: true }].map((e, i) => <div key={i} style={{ padding: "8px 10px", borderRadius: 6, background: G50, border: `1px solid ${G200}`, marginBottom: 6, fontSize: 11 }}><div style={{ fontWeight: 500, color: G700 }}>[{e.log}] {e.entry}</div><div style={{ color: G400, marginTop: 2 }}>By: {e.by} | Verified: {e.verifier} | {e.time} | e-Sig: {e.esig ? <span style={{ color: GR }}>✓ Captured</span> : "Pending"}</div></div>)}
-        <div style={{ fontSize: 10, color: G400, marginTop: 4 }}>Attachments supported per logbook entry (images, documents per PRD 5.8)</div>
-      </Cd>
-    </div>
   </div>
 );
 
-// 10. INTEGRATION HUB
-const IntegrationTab = () => (
-  <div>
-    <Sec sub="System interfaces per PRD 8.1-8.4, SIR-2.5.1-2.5.10 | DMS version control per PRD 5.9">Integration Hub</Sec>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-      {INTEGRATIONS.map((s, i) => <Cd key={i} style={{ borderLeft: `4px solid ${s.status === "Connected" ? GR : s.status === "Degraded" ? RD : G300}` }}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><div><div style={{ fontSize: 15, fontWeight: 700, color: DK }}>{s.name}</div><div style={{ fontSize: 12, color: G500 }}>{s.supplier} | v{s.ver}</div></div><Badge s={s.status} /></div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 11 }}><div><span style={{ color: G400 }}>Type:</span> <span style={{ color: G700, fontWeight: 500 }}>{s.type}</span></div><div><span style={{ color: G400 }}>Sync:</span> <span style={{ color: G700 }}>{s.sync}</span></div></div><div style={{ marginTop: 8, padding: "6px 10px", background: G50, borderRadius: 6, fontSize: 11, color: G500 }}>{s.details}</div></Cd>)}
-    </div>
-  </div>
-);
+// ══════════════════════════════════════════════════════════
+// ── TAB: DEVIATIONS ──────────────────────────────────────
+// ══════════════════════════════════════════════════════════
 
-// 11. REPORTS
-const ReportsTab = () => {
-  const cd = [{ m: "Sep", y: 97.2, o: 82 }, { m: "Oct", y: 97.8, o: 84 }, { m: "Nov", y: 98.1, o: 85 }, { m: "Dec", y: 97.5, o: 83 }, { m: "Jan", y: 98.4, o: 86 }, { m: "Feb", y: 98.6, o: 87 }];
-  return <div>
-    <Sec sub="Reporting per PRD 5.10, ROR-2.7.1-2.7.7 | All reports non-editable PDF">Reports & Analytics</Sec>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-      <Cd><div style={{ fontSize: 14, fontWeight: 600, color: DK, marginBottom: 14 }}>Yield Trend</div><div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 140, padding: "0 8px" }}>{cd.map((d, i) => <div key={i} style={{ flex: 1, textAlign: "center" }}><div style={{ fontSize: 10, color: G500 }}>{d.y}%</div><div style={{ height: ((d.y - 95) / 6) * 120, background: `linear-gradient(180deg, ${O}, ${O}80)`, borderRadius: "4px 4px 0 0", minHeight: 10 }} /><div style={{ fontSize: 10, color: G400, marginTop: 4 }}>{d.m}</div></div>)}</div></Cd>
-      <Cd><div style={{ fontSize: 14, fontWeight: 600, color: DK, marginBottom: 14 }}>OEE Trend (TER-2.2.110)</div><div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 140, padding: "0 8px" }}>{cd.map((d, i) => <div key={i} style={{ flex: 1, textAlign: "center" }}><div style={{ fontSize: 10, color: G500 }}>{d.o}%</div><div style={{ height: (d.o / 100) * 120, background: `linear-gradient(180deg, ${BL}, ${BL}80)`, borderRadius: "4px 4px 0 0", minHeight: 10 }} /><div style={{ fontSize: 10, color: G400, marginTop: 4 }}>{d.m}</div></div>)}</div></Cd>
-    </div>
-    <Cd><div style={{ fontSize: 14, fontWeight: 600, color: DK, marginBottom: 12 }}>Available Reports (PDF, non-editable per ROR-2.7.1)</div><div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>{["Executed BMR/BPR Record", "Yield Reconciliation", "OEE Equipment Report", "Deviation Summary", "Audit Trail Report", "Batch Summary", "Cleaning Validation", "SPC Control Chart", "Equipment Breakdown", "Sampling/TRF Report", "Material Reconciliation", "Label Reprint Log"].map((r, i) => <div key={i} style={{ padding: "10px 14px", background: G50, borderRadius: 8, border: `1px solid ${G200}`, fontSize: 12, color: G700, display: "flex", alignItems: "center", gap: 8 }}><span style={{ color: RD, fontSize: 14 }}>📄</span>{r}</div>)}</div></Cd>
-  </div>;
-};
-
-// 12. COMPLIANCE
-const ComplianceTab = () => (
+const DeviationsTab = () => (
   <div>
-    <Sec sub="21 CFR Part 11, GAMP5, ALCOA+ per PRD 7.1-7.4, SEC-2.9.38-2.9.44, REG-2.10.1-2.10.23">Compliance & Audit Trail</Sec>
-    <Cd style={{ marginBottom: 16 }}>
-      <div style={{ fontSize: 14, fontWeight: 600, color: DK, marginBottom: 14 }}>Compliance Status</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-        {["Electronic Records (REG-2.10.1-5)", "Data Integrity (REG-2.10.6-10)", "E-Signatures (REG-2.10.19-23)", "Audit Trail (SEC-2.9.38-44)", "ALCOA+ Principles", "Backup Integrity (REG-2.10.10)", "Concurrent Mod Prevention (REG-2.10.14)", "Record Deletion Prevention (REG-2.10.9)", "Time-stamped Audit (SEC-2.9.40)"].map((c, i) => <div key={i} style={{ padding: "8px 10px", background: `${GR}08`, borderRadius: 8, border: `1px solid ${GR}30`, display: "flex", alignItems: "center", gap: 6 }}><span style={{ color: GR, fontWeight: 700, fontSize: 14 }}>✓</span><span style={{ fontSize: 12, color: G700 }}>{c}</span></div>)}
-      </div>
-    </Cd>
-    <Cd>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}><div style={{ fontSize: 14, fontWeight: 600, color: DK }}>Audit Trail (Immutable per SEC-2.9.44 | Old/New values per REG-2.10.16)</div><div style={{ fontSize: 11, color: G400 }}>Cannot be modified or deleted</div></div>
-      <Tbl cols={[
-        { l: "ID", r: r => <span style={{ fontFamily: "monospace", fontSize: 10 }}>{r.id}</span> },
-        { l: "Timestamp", r: r => <span style={{ fontFamily: "monospace", fontSize: 10 }}>{r.ts}</span> },
-        { l: "User", r: r => <b>{r.user}</b> },
-        { l: "Module", k: "module" },
-        { l: "Action", k: "action" },
-        { l: "Detail (incl. old/new values)", r: r => <span style={{ fontSize: 11 }}>{r.detail}</span> },
-        { l: "Source IP", r: r => <span style={{ fontFamily: "monospace", fontSize: 10 }}>{r.ip}</span> },
-      ]} data={AUDIT} />
-    </Cd>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginTop: 14 }}>
-      <Cd>
-        <div style={{ fontSize: 13, fontWeight: 600, color: DK, marginBottom: 8 }}>Backup & Recovery (PRD 6.2, DAR-2.3)</div>
-        {[{ l: "Backup Frequency", v: "Daily full + Hourly incremental" }, { l: "Retention (DAR-2.3.1)", v: "6 years from MFG date" }, { l: "Last Backup", v: "2025-02-08 06:00" }, { l: "Recovery RTO", v: "< 4 hours" }, { l: "DR Site", v: "Configured (Offsite)" }, { l: "Deduplication (DAR-2.3.3)", v: "Enabled" }].map((r, i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px solid ${G100}`, fontSize: 11 }}><span style={{ color: G500 }}>{r.l}</span><b style={{ color: G700 }}>{r.v}</b></div>)}
-      </Cd>
-      <Cd>
-        <div style={{ fontSize: 13, fontWeight: 600, color: DK, marginBottom: 8 }}>Data Integrity (PRD 7.4, DAR-2.3.4-11)</div>
-        {["DAR-2.3.5: No deletion; auto backup to removable media", "DAR-2.3.6: Contemporaneous capture with server timestamp", "DAR-2.3.7: Acquired equipment data immutable", "DAR-2.3.8: Complete electronic records; no modification", "DAR-2.3.9: No hurdles in communication/transfer/storage", "DAR-2.3.11: Power failure recovery without data loss"].map((f, i) => <div key={i} style={{ padding: "3px 8px", fontSize: 11, color: G600, display: "flex", gap: 4 }}><span style={{ color: GR, fontWeight: 700 }}>✓</span>{f}</div>)}
-      </Cd>
-      <Cd>
-        <div style={{ fontSize: 13, fontWeight: 600, color: DK, marginBottom: 8 }}>Performance SLAs (PRD 6.1)</div>
-        {[{ l: "Daily dialogs", v: "< 3 sec", ok: true }, { l: "500+ record query", v: "< 30 sec", ok: true }, { l: "Report generation", v: "< 60 sec", ok: true }, { l: "Availability", v: "24/7 (3 shifts)", ok: true }, { l: "Equipment data lag", v: "< 1 sec", ok: true }].map((r, i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px solid ${G100}`, fontSize: 11 }}><span style={{ color: G500 }}>{r.l}</span><span style={{ color: GR, fontWeight: 600 }}>{r.v} ✓</span></div>)}
-      </Cd>
-    </div>
-  </div>
-);
-
-// 13. USER MANAGEMENT
-const UsersTab = () => (
-  <div>
-    <Sec sub="RBAC per PRD 7.1, UMR-2.4.1-2.4.5, SEC-2.9.1-2.9.37">User Management & Security</Sec>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-      <Cd>
-        <div style={{ fontSize: 14, fontWeight: 600, color: DK, marginBottom: 10 }}>Security Policies</div>
-        {[{ p: "Credentials (SEC-2.9.26)", v: "User ID + Password/Biometric" }, { p: "Password (SEC-2.9.28)", v: "8+ chars, mixed case/num/special" }, { p: "Expiry", v: "90 days" }, { p: "Lockout (SEC-2.9.10)", v: "5 attempts" }, { p: "Timeout (SEC-2.9.29)", v: "15 min" }, { p: "History (SEC-2.9.17)", v: "12 passwords" }, { p: "Login (UMR-2.4.5)", v: "Password / Retina" }].map((p, i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: `1px solid ${G100}`, fontSize: 12 }}><span style={{ color: G500 }}>{p.p}</span><b style={{ color: G700 }}>{p.v}</b></div>)}
-      </Cd>
-      <Cd>
-        <div style={{ fontSize: 14, fontWeight: 600, color: DK, marginBottom: 10 }}>Privilege Matrix (UMR-2.4.1)</div>
-        <table style={{ width: "100%", fontSize: 11, borderCollapse: "collapse" }}><thead><tr style={{ background: G50 }}><th style={{ padding: 6, textAlign: "left", borderBottom: `1px solid ${G200}` }}>Role</th>{["Batch Exec", "Review", "Approve", "Master Data", "User Mgmt", "Audit"].map(h => <th key={h} style={{ padding: 6, textAlign: "center", borderBottom: `1px solid ${G200}`, fontSize: 9 }}>{h}</th>)}</tr></thead><tbody>
-        {[{ r: "Operator", p: [1,0,0,0,0,0] }, { r: "Supervisor", p: [1,1,0,0,0,1] }, { r: "QA Reviewer", p: [0,1,1,0,0,1] }, { r: "QA Head", p: [0,1,1,1,0,1] }, { r: "Admin", p: [0,0,0,1,1,1] }].map((r, i) => <tr key={i} style={{ borderBottom: `1px solid ${G100}` }}><td style={{ padding: 6, fontWeight: 500 }}>{r.r}</td>{r.p.map((v, j) => <td key={j} style={{ padding: 6, textAlign: "center", color: v ? GR : G300 }}>{v ? "✓" : "—"}</td>)}</tr>)}
-        </tbody></table>
-      </Cd>
-    </div>
+    <Sec sub="Deviation management with auto-linking to batch, stage, and equipment">Deviations & Quality Events</Sec>
+    <Grid cols="repeat(auto-fit, minmax(100px, 1fr))" gap={8} style={{ marginBottom: 14 }}>
+      {[
+        { l: "Open", v: DEVIATIONS.filter(d => d.status === "Open").length, c: C.rd },
+        { l: "Under Investigation", v: DEVIATIONS.filter(d => d.status === "Under Investigation").length, c: C.yl },
+        { l: "Closed", v: DEVIATIONS.filter(d => d.status === "Closed").length, c: C.gr },
+      ].map((k, i) => <Cd key={i} accent={k.c} style={{ textAlign: "center", padding: 10 }}><div style={{ fontSize: 18, fontWeight: 700, color: k.c }}>{k.v}</div><div style={{ fontSize: 10, color: C.t3 }}>{k.l}</div></Cd>)}
+    </Grid>
     <Tbl cols={[
-      { l: "ID", r: r => <span style={{ fontFamily: "monospace" }}>{r.id}</span> },
-      { l: "Name", r: r => <b>{r.name}</b> },
-      { l: "Role", k: "role" },
-      { l: "Department", k: "dept" },
+      { l: "ID", r: r => <span style={{ fontWeight: 600, color: C.rd, fontFamily: "monospace", fontSize: 10 }}>{r.id}</span> },
+      { l: "Batch", k: "batch" },
+      { l: "Stage", k: "stage" },
+      { l: "Category", r: r => <Badge s={r.cat} /> },
+      { l: "Type", k: "type" },
+      { l: "Description", r: r => <span style={{ fontSize: 11 }}>{r.desc}</span> },
       { l: "Status", r: r => <Badge s={r.status} /> },
-      { l: "Last Login", r: r => <span style={{ fontFamily: "monospace", fontSize: 11 }}>{r.login}</span> },
-    ]} data={USERS} />
+    ]} data={DEVIATIONS} />
   </div>
 );
 
-// ── Navigation ──────────────────────────────────────────
-const TABS = [
-  { id: "dash", l: "Dashboard", i: "📊", ref: "BFR-2.1.3" },
-  { id: "tpl", l: "Master Templates", i: "📐", ref: "PRD 5.1" },
-  { id: "batch", l: "Batch Execution", i: "🏭", ref: "PRD 5.2" },
-  { id: "mat", l: "Materials", i: "🧪", ref: "PRD 5.3" },
-  { id: "equip", l: "Equipment", i: "🔧", ref: "PRD 5.4" },
-  { id: "ipc", l: "IPC & Controls", i: "🔬", ref: "PRD 5.5" },
-  { id: "sample", l: "Sampling & Labels", i: "🏷️", ref: "PRD 5.6" },
-  { id: "dev", l: "Deviations", i: "⚠️", ref: "PRD 5.7" },
-  { id: "log", l: "E-Logbooks", i: "📋", ref: "PRD 5.8" },
-  { id: "integ", l: "Integration Hub", i: "🔗", ref: "PRD 8" },
-  { id: "rpt", l: "Reports", i: "📈", ref: "PRD 5.10" },
-  { id: "comp", l: "Compliance", i: "🛡️", ref: "PRD 7" },
-  { id: "usr", l: "User Mgmt", i: "👥", ref: "SEC-2.9" },
-];
-const TC = { dash: DashboardTab, tpl: TemplatesTab, batch: BatchTab, mat: MaterialsTab, equip: EquipmentTab, ipc: IPCTab, sample: SamplingTab, dev: DeviationTab, log: LogbookTab, integ: IntegrationTab, rpt: ReportsTab, comp: ComplianceTab, usr: UsersTab };
+// ══════════════════════════════════════════════════════════
+// ── TAB: AUDIT TRAIL ─────────────────────────────────────
+// ══════════════════════════════════════════════════════════
 
-export default function MES() {
-  const [tab, setTab] = useState("dash");
-  const [time, setTime] = useState(new Date());
-  const [collapsed, setCollapsed] = useState(false);
-  useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t); }, []);
-  const Tab = TC[tab];
-  return (
-    <div style={{ display: "flex", height: "100vh", fontFamily: "'Segoe UI', -apple-system, sans-serif", background: G50, color: G800 }}>
-      <div style={{ width: collapsed ? 56 : 210, background: DK, color: "#fff", display: "flex", flexDirection: "column", transition: "width 0.3s", flexShrink: 0, overflow: "hidden" }}>
-        <div style={{ padding: collapsed ? "14px 6px" : "14px 16px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 8, background: O, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800, color: "#fff", flexShrink: 0 }}>M</div>
-            {!collapsed && <div><div style={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.5 }}>MES</div><div style={{ fontSize: 8, color: "rgba(255,255,255,0.5)" }}>MICRO LABS ML11</div></div>}
+const AuditTab = () => (
+  <div>
+    <Sec sub="21 CFR Part 11 compliant | Immutable, timestamped, user-attributed records">Audit Trail</Sec>
+    <Tbl cols={[
+      { l: "ID", r: r => <span style={{ fontFamily: "monospace", fontWeight: 600, fontSize: 10 }}>{r.id}</span> },
+      { l: "Timestamp", r: r => <span style={{ fontFamily: "monospace", fontSize: 10 }}>{r.ts}</span> },
+      { l: "User", r: r => <span style={{ fontWeight: 500 }}>{r.user}</span> },
+      { l: "Action", k: "action" },
+      { l: "Detail", r: r => <span style={{ fontSize: 10, color: C.t2 }}>{r.detail}</span> },
+      { l: "Module", k: "module" },
+    ]} data={AUDIT} />
+    <Cd style={{ marginTop: 10, borderLeft: `4px solid ${C.pri}` }}>
+      <div style={{ fontSize: 10, color: C.t3 }}>All records are immutable and cannot be modified or deleted. Every action is attributed to a specific user with timestamp, IP address, and session ID per 21 CFR Part 11 requirements.</div>
+    </Cd>
+  </div>
+);
+
+// ══════════════════════════════════════════════════════════
+// ── TAB: REPORTS ─────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+
+const ReportsTab = () => (
+  <div>
+    <Sec sub="CPV/APR analytics from 230 DXLPR batches | Yield trend, CPP drift, and process capability">Reports & Analytics</Sec>
+    <Cd style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: C.t1, marginBottom: 10 }}>Yield Cascade Across 230 Batches (Jan 2019 - Dec 2024)</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {[
+          { stage: "Sifted Granules Yield", min: "96.67%", max: "98.53%", mean: "97.6%", target: "≥95%", c: C.gr },
+          { stage: "Compression Yield", min: "96.5%", max: "99.5%", mean: "98.0%", target: "≥96%", c: C.gr },
+          { stage: "Coating Yield", min: "94.5%", max: "100.5%", mean: "97.1%", target: "≥95%", c: C.gr },
+          { stage: "Inspection Yield", min: "95.0%", max: "101.0%", mean: "98.2%", target: "≥96%", c: C.gr },
+          { stage: "Packing Yield", min: "97.5%", max: "100.4%", mean: "99.0%", target: "≥97%", c: C.gr },
+        ].map((y, i) => (
+          <div key={i}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+              <span style={{ fontSize: 11, fontWeight: 500, color: C.t2 }}>{y.stage}</span>
+              <span style={{ fontSize: 10, color: C.t3 }}>Range: {y.min} - {y.max} | Mean: <b style={{ color: y.c }}>{y.mean}</b></span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ flex: 1 }}><Bar v={parseFloat(y.mean)} c={y.c} h={8} /></div>
+              <span style={{ fontSize: 9, color: C.t4, minWidth: 40 }}>Target: {y.target}</span>
+            </div>
           </div>
-        </div>
-        <div style={{ flex: 1, padding: "6px 4px", overflowY: "auto" }}>
-          {TABS.map(t => {
-            const a = tab === t.id;
-            return <button key={t.id} onClick={() => setTab(t.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: collapsed ? "8px 6px" : "7px 10px", marginBottom: 1, background: a ? `${O}20` : "transparent", border: "none", borderRadius: 6, cursor: "pointer", color: a ? O : "rgba(255,255,255,0.55)", fontSize: 12, fontWeight: a ? 600 : 400, textAlign: "left", borderLeft: a ? `3px solid ${O}` : "3px solid transparent", justifyContent: collapsed ? "center" : "flex-start" }} title={collapsed ? `${t.l} (${t.ref})` : ""}><span style={{ fontSize: 14, flexShrink: 0 }}>{t.i}</span>{!collapsed && <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}><span>{t.l}</span><span style={{ fontSize: 8, opacity: 0.5 }}>{t.ref}</span></div>}</button>;
-          })}
-        </div>
-        <button onClick={() => setCollapsed(!collapsed)} style={{ padding: 10, background: "rgba(255,255,255,0.05)", border: "none", color: "rgba(255,255,255,0.4)", cursor: "pointer", fontSize: 12 }}>{collapsed ? "→" : "← Collapse"}</button>
+        ))}
       </div>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{ padding: "8px 20px", background: "#fff", borderBottom: `1px solid ${G200}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
-          <span style={{ fontSize: 10, color: G400, textTransform: "uppercase", letterSpacing: 1 }}>QAP/MLCM/0095/ANX/0026-000 | URS:ML11:25:0009</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <span style={{ fontSize: 10, color: G400, fontFamily: "monospace" }}>{time.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}</span>
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 7, height: 7, borderRadius: "50%", background: GR }} /><span style={{ fontSize: 10, color: GR, fontWeight: 500 }}>Online</span></div>
-            <div style={{ padding: "3px 10px", background: G50, borderRadius: 6, fontSize: 10, color: G500 }}>👤 QA_Reviewer | ML11</div>
+    </Cd>
+    <Grid cols="repeat(auto-fit, minmax(200px, 1fr))" gap={10}>
+      <Cd>
+        <div style={{ fontSize: 12, fontWeight: 600, color: C.t1, marginBottom: 8 }}>CPP Summary (Compression)</div>
+        {[
+          { p: "Hardness", range: "48-76 N", mean: "63.2 N" },
+          { p: "Thickness", range: "1.0-3.5 mm", mean: "2.1 mm" },
+          { p: "Avg Weight", range: "145-155 mg", mean: "150.2 mg" },
+          { p: "Comp Yield", range: "96.5-99.5%", mean: "98.0%" },
+        ].map((c, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px solid ${C.borL}`, fontSize: 11 }}>
+            <span style={{ color: C.t3 }}>{c.p}</span>
+            <span style={{ color: C.t1 }}>{c.range} (μ: <b>{c.mean}</b>)</span>
+          </div>
+        ))}
+      </Cd>
+      <Cd>
+        <div style={{ fontSize: 12, fontWeight: 600, color: C.t1, marginBottom: 8 }}>CPP Summary (Coating)</div>
+        {[
+          { p: "Pan Speed", range: "38-46 RPM", mean: "42.0 RPM" },
+          { p: "Bed Temp", range: "95-100°C", mean: "97.5°C" },
+          { p: "Viscosity", range: "42-52 cps", mean: "47.1 cps" },
+          { p: "Coat Yield", range: "94.5-100.5%", mean: "97.1%" },
+        ].map((c, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px solid ${C.borL}`, fontSize: 11 }}>
+            <span style={{ color: C.t3 }}>{c.p}</span>
+            <span style={{ color: C.t1 }}>{c.range} (μ: <b>{c.mean}</b>)</span>
+          </div>
+        ))}
+      </Cd>
+      <Cd>
+        <div style={{ fontSize: 12, fontWeight: 600, color: C.t1, marginBottom: 8 }}>Batch Volume by Year</div>
+        {[
+          { yr: "2019", count: 35 }, { yr: "2020", count: 50 }, { yr: "2021", count: 55 },
+          { yr: "2022", count: 40 }, { yr: "2023", count: 30 }, { yr: "2024", count: 20 },
+        ].map((y, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <span style={{ width: 30, fontSize: 10, color: C.t3, fontWeight: 600 }}>{y.yr}</span>
+            <div style={{ flex: 1 }}><Bar v={y.count * 1.8} c={C.pri} h={12} /></div>
+            <span style={{ width: 20, fontSize: 11, fontWeight: 600, color: C.pri }}>{y.count}</span>
+          </div>
+        ))}
+      </Cd>
+    </Grid>
+  </div>
+);
+
+// ══════════════════════════════════════════════════════════
+// ── MAIN APP ─────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+
+const TABS = [
+  { id: "dash", label: "Dashboard", icon: "📊", comp: DashboardTab },
+  { id: "batch", label: "Batch Execution", icon: "⚡", comp: BatchTab },
+  { id: "templ", label: "Templates", icon: "📋", comp: TemplatesTab },
+  { id: "mat", label: "Materials", icon: "🧪", comp: MaterialsTab },
+  { id: "equip", label: "Equipment", icon: "🔧", comp: EquipmentTab },
+  { id: "ipc", label: "IPC & Controls", icon: "🔬", comp: IPCTab },
+  { id: "log", label: "E-Logbooks", icon: "📓", comp: LogbooksTab },
+  { id: "dev", label: "Deviations", icon: "⚠️", comp: DeviationsTab },
+  { id: "audit", label: "Audit Trail", icon: "🔒", comp: AuditTab },
+  { id: "report", label: "Reports", icon: "📈", comp: ReportsTab },
+];
+
+export default function App() {
+  const [tab, setTab] = useState("dash");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  const ActiveComp = TABS.find(t => t.id === tab)?.comp || DashboardTab;
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+      {/* Header */}
+      <div style={{ background: C.priG, color: "#fff", padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {isMobile && (
+            <button onClick={() => setMenuOpen(!menuOpen)} style={{ background: "none", border: "none", color: "#fff", fontSize: 20, cursor: "pointer", padding: 0, lineHeight: 1 }}>
+              {menuOpen ? "✕" : "☰"}
+            </button>
+          )}
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 0.5 }}>MES</div>
+            <div style={{ fontSize: 9, opacity: 0.75, letterSpacing: 0.3 }}>Manufacturing Execution System</div>
           </div>
         </div>
-        <div style={{ flex: 1, overflow: "auto", padding: 20 }}>
-          <Tab />
-          <div style={{ marginTop: 28, padding: "14px 0", borderTop: `1px solid ${G200}`, display: "flex", justifyContent: "space-between", fontSize: 9, color: G400 }}>
-            <span>POC v2: MES | Micro Labs Limited, Veerasandra (ML11) | URS:ML11:25:0009 | PRD Aligned</span>
-            <span>GAMP5 Cat 5 | 21 CFR Part 11 | ALCOA+ | ANSI/ISA-95 | 13 Modules</span>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 10, opacity: 0.8 }}>DXLPR | Dexlansoprazole DR 60mg</div>
+          <div style={{ fontSize: 9, opacity: 0.6 }}>Demo Data | {new Date().toLocaleDateString("en-IN")}</div>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", minHeight: "calc(100vh - 52px)" }}>
+        {/* Sidebar / Mobile drawer */}
+        {(isMobile ? menuOpen : true) && (
+          <div style={{
+            width: isMobile ? "100%" : 180,
+            background: C.card,
+            borderRight: isMobile ? "none" : `1px solid ${C.bor}`,
+            padding: "8px 0",
+            position: isMobile ? "fixed" : "sticky",
+            top: isMobile ? 52 : 52,
+            left: 0,
+            height: isMobile ? "calc(100vh - 52px)" : "calc(100vh - 52px)",
+            zIndex: 90,
+            overflowY: "auto",
+            boxShadow: isMobile ? "0 4px 20px rgba(0,0,0,0.15)" : "none",
+          }}>
+            {TABS.map(t => (
+              <button
+                key={t.id}
+                onClick={() => { setTab(t.id); if (isMobile) setMenuOpen(false); }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  width: "100%", padding: isMobile ? "14px 20px" : "9px 14px",
+                  border: "none", cursor: "pointer", textAlign: "left",
+                  background: tab === t.id ? C.priL : "transparent",
+                  color: tab === t.id ? C.pri : C.t3,
+                  fontWeight: tab === t.id ? 600 : 400,
+                  fontSize: isMobile ? 14 : 12,
+                  borderLeft: tab === t.id ? `3px solid ${C.pri}` : "3px solid transparent",
+                  transition: "all 0.15s",
+                }}
+              >
+                <span style={{ fontSize: isMobile ? 18 : 14 }}>{t.icon}</span>
+                {t.label}
+              </button>
+            ))}
+            <div style={{ padding: "12px 16px", borderTop: `1px solid ${C.bor}`, marginTop: 8 }}>
+              <div style={{ fontSize: 9, color: C.t4, lineHeight: 1.5 }}>
+                Product: DXLPR (Synthetic)<br />
+                230 batches | 10 stages<br />
+                21 CFR Part 11 compliant<br />
+                v3.0 | PlutoxAI
+              </div>
+            </div>
           </div>
+        )}
+
+        {/* Main Content */}
+        <div style={{ flex: 1, padding: isMobile ? 12 : 20, maxWidth: "100%", overflow: "hidden" }}>
+          <ActiveComp />
         </div>
       </div>
     </div>

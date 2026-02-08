@@ -1,8 +1,7 @@
 {
-  "name": "ml11-mes-poc",
-  "version": "2.0.0",
-  "description": "Manufacturing Execution System (MES) POC for Micro Labs ML11 Facility - Pharmaceutical batch manufacturing with 21 CFR Part 11 compliance",
+  "name": "mes-poc-v3-dxlpr",
   "private": true,
+  "version": "3.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
